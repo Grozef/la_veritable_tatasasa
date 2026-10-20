@@ -39,6 +39,26 @@ final class PaletteExtractor
 
     private const PAPER_CHROMA = 10.0;
 
+    /**
+     * Une feuille PHOTOGRAPHIEE n'atteint pas L 88 : sous une lampe ou un ciel gris, le
+     * papier sort entre L 72 et L 85 (mesure du 2026-10-20 sur 19 photos reelles). Le
+     * papier se reconnait donc aussi par rapport a la feuille elle-meme : la reference est
+     * le 90e centile de L parmi les pixels peu colores, et tout pixel peu colore a moins
+     * de PAPER_SPREAD sous elle est de la reserve (ombre et degrade de la prise de vue).
+     */
+    private const PAPER_PERCENTILE = 0.9;
+
+    private const PAPER_SPREAD = 15.0;
+
+    /**
+     * Sous ce plancher, la reference n'est pas du papier mais un lavis neutre pleine page :
+     * on retombe sur le seul seuil absolu, sinon le gris serait avale. Le papier le plus
+     * sombre mesure est a L 69.9 (img_23, photo brute, sans balance des blancs) ; balance,
+     * il ne descend pas sous L 92. Limite connue : un lavis gris NEUTRE pleine page entre
+     * L 69 et L ~73 reste pris pour du papier.
+     */
+    private const PAPER_FLOOR = 69.0;
+
     private const CLUSTERS = 5;
 
     private const MAX_ITERATIONS = 20;
@@ -49,6 +69,19 @@ final class PaletteExtractor
      * le nuancier de pastilles fausses.
      */
     private const MIN_WEIGHT = 0.05;
+
+    /**
+     * Au-dela de cette distance, aucun tube du nuancier n'explique la teinte : la renvoyer
+     * vers le moins eloigne colorait le papier ombre et les lavis pales en « Terre verte »
+     * (deltaE 29 a 42 mesures sur les photos reelles du 2026-10-20).
+     */
+    private const MAX_DELTA = 30.0;
+
+    /**
+     * Un pigment est neutre sous cette chroma : Noir d'ivoire (2.1) et Gris de Payne (12.1)
+     * dans le nuancier seede, Terre d'ombre brulee (20.4) au-dela.
+     */
+    private const NEUTRAL_PIGMENT_CHROMA = 15.0;
 
     /**
      * @return array<int, float> pigment_id => part de la surface PEINTE, du plus couvrant
@@ -77,7 +110,7 @@ final class PaletteExtractor
             ->decodePath($absolutePath)
             ->scaleDown(width: self::SAMPLE_WIDTH);
 
-        $pixels = [];
+        $all = [];
 
         for ($y = 0; $y < $image->height(); $y++) {
             for ($x = 0; $x < $image->width(); $x++) {
@@ -87,31 +120,66 @@ final class PaletteExtractor
                     continue;
                 }
 
-                $lab = Lab::fromRgb(
+                $all[] = Lab::fromRgb(
                     (int) $color->channel(Red::class)->value(),
                     (int) $color->channel(Green::class)->value(),
                     (int) $color->channel(Blue::class)->value(),
                 );
-
-                if ($this->isPaper($lab)) {
-                    continue;
-                }
-
-                $pixels[] = $lab;
             }
         }
 
-        return $pixels;
+        $paperLightness = $this->paperLightness($all);
+
+        return array_values(array_filter(
+            $all,
+            fn (array $lab): bool => ! $this->isPaper($lab, $paperLightness),
+        ));
+    }
+
+    /**
+     * Seuil de luminosite au-dessus duquel un pixel peu colore est du papier : le seuil
+     * absolu, abaisse jusqu'a la reference de la feuille si elle est assez claire.
+     *
+     * @param  array<int, array{0: float, 1: float, 2: float}>  $pixels
+     */
+    private function paperLightness(array $pixels): float
+    {
+        $neutral = [];
+
+        foreach ($pixels as $lab) {
+            if ($this->chroma($lab) < self::PAPER_CHROMA) {
+                $neutral[] = $lab[0];
+            }
+        }
+
+        if ($neutral === []) {
+            return self::PAPER_LIGHTNESS;
+        }
+
+        sort($neutral);
+        $reference = $neutral[(int) floor((count($neutral) - 1) * self::PAPER_PERCENTILE)];
+
+        if ($reference < self::PAPER_FLOOR) {
+            return self::PAPER_LIGHTNESS;
+        }
+
+        return min(self::PAPER_LIGHTNESS, $reference - self::PAPER_SPREAD);
     }
 
     /**
      * @param  array{0: float, 1: float, 2: float}  $lab
      */
-    private function isPaper(array $lab): bool
+    private function isPaper(array $lab, float $paperLightness): bool
     {
-        $chroma = sqrt($lab[1] ** 2 + $lab[2] ** 2);
+        return $lab[0] > $paperLightness && $this->chroma($lab) < self::PAPER_CHROMA;
+    }
 
-        return $lab[0] > self::PAPER_LIGHTNESS && $chroma < self::PAPER_CHROMA;
+    /**
+     * @param  array{0: float, 1: float, 2: float}  $lab
+     */
+    private function chroma(array $lab): float
+    {
+        return sqrt($lab[1] ** 2 + $lab[2] ** 2);
     }
 
     /**
@@ -255,7 +323,8 @@ final class PaletteExtractor
     /**
      * Chaque centroide rejoint le pigment le plus proche du nuancier. Deux centroides
      * peuvent tomber sur le meme pigment (un lavis et sa reprise plus dense) : leurs
-     * masses s'additionnent.
+     * masses s'additionnent. Un centroide neutre ne rejoint qu'un pigment neutre, et un
+     * centroide trop loin de tout pigment n'en rejoint aucun.
      *
      * @param  array<int, array{centroid: array{0: float, 1: float, 2: float}, mass: int}>  $clusters
      * @return array<int, float>
@@ -268,12 +337,16 @@ final class PaletteExtractor
         foreach ($clusters as $cluster) {
             $closest = null;
             $record = INF;
+            $neutral = $this->chroma($cluster['centroid']) < self::PAPER_CHROMA;
 
             foreach ($pigments as $pigment) {
-                $distance = Lab::distance(
-                    $cluster['centroid'],
-                    [$pigment->lab_l, $pigment->lab_a, $pigment->lab_b],
-                );
+                $lab = [$pigment->lab_l, $pigment->lab_a, $pigment->lab_b];
+
+                if ($neutral && $this->chroma($lab) >= self::NEUTRAL_PIGMENT_CHROMA) {
+                    continue;
+                }
+
+                $distance = Lab::distance($cluster['centroid'], $lab);
 
                 if ($distance < $record) {
                     $record = $distance;
@@ -281,7 +354,7 @@ final class PaletteExtractor
                 }
             }
 
-            if ($closest === null) {
+            if ($closest === null || $record > self::MAX_DELTA) {
                 continue;
             }
 

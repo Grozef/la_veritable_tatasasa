@@ -60,14 +60,72 @@ class PaletteExtractionTest extends TestCase
     }
 
     /**
+     * Une feuille PHOTOGRAPHIEE n'est pas blanche : sous la lampe, le papier sort gris
+     * (#c4c5c7, L 80, mesure sur img_49 : L 79, chroma 1.9). Au-dessus du seuil absolu
+     * de 88, il etait pris pour un pigment et tombait sur « Terre verte » a 66 %.
+     */
+    public function test_photographed_grey_paper_is_still_paper(): void
+    {
+        $this->seed(PigmentSeeder::class);
+
+        $palette = $this->extract(['#2846a0' => 0.15], paper: '#c4c5c7');
+
+        $this->assertSame(['outremer'], $this->slugs($palette));
+        // Le papier gris ne compte pas comme surface peinte : sans la reference de la
+        // feuille, l'outremer ne pesait que ses 15 % de la page.
+        $this->assertEqualsWithDelta(1.0, array_sum($palette), 0.01);
+    }
+
+    /**
+     * Le papier se reconnait par rapport a la feuille, pas dans l'absolu — mais une
+     * oeuvre sans papier clair (un lavis gris NEUTRE pleine page, #a4a4a4, L 67.4) ne doit
+     * pas voir son gris avale comme une reserve : sa propre reference tomberait a L 67.4 et
+     * tout serait ecarte sans le plancher (L 69). Le gris de Payne lui-meme ne prouverait
+     * rien ici : sa chroma (12.1) le met hors de toute reserve.
+     */
+    public function test_a_full_page_neutral_grey_wash_is_not_taken_for_paper(): void
+    {
+        $this->seed(PigmentSeeder::class);
+
+        $this->assertSame(['gris-de-payne'], $this->slugs($this->extract(['#a4a4a4' => 1.0])));
+    }
+
+    /**
+     * Un gris est un gris : il ne peut rejoindre qu'un pigment neutre. Au plus proche en
+     * distance brute, un gris clair #a8a8a8 (L 68.9, celui du lavis gris du DJ d'img_43)
+     * tombait sur « Terre verte » (deltaE 28.41) avant « Gris de Payne » (28.64) — c'est
+     * par la que l'ombre du papier et les gris colorient tout le nuancier en vert.
+     * Marge etroite assumee : Gris de Payne est a 28.64, sous MAX_DELTA (30) de 1.36 ;
+     * retoucher son hex ou baisser MAX_DELTA impose de revoir ce gris.
+     */
+    public function test_a_neutral_grey_joins_a_neutral_pigment(): void
+    {
+        $this->seed(PigmentSeeder::class);
+
+        $this->assertSame(['gris-de-payne'], $this->slugs($this->extract(['#a8a8a8' => 0.3])));
+    }
+
+    /**
+     * Une teinte qu'aucun tube du nuancier n'approche (vert d'eau tres pale, deltaE > 30
+     * de tout pigment) ne recoit pas le pigment le moins eloigne : ne rien dire vaut mieux
+     * qu'une pastille fausse.
+     */
+    public function test_a_tint_far_from_every_pigment_gets_none(): void
+    {
+        $this->seed(PigmentSeeder::class);
+
+        $this->assertSame([], $this->extract(['#b4e6cd' => 0.3]));
+    }
+
+    /**
      * @param  array<string, float>  $washes  hex => part de la hauteur de la feuille
      * @return array<int, float>
      */
-    private function extract(array $washes): array
+    private function extract(array $washes, string $paper = '#fcfaf5'): array
     {
         Storage::fake('public');
 
-        Storage::disk('public')->put('sonde.png', $this->aquarelle($washes));
+        Storage::disk('public')->put('sonde.png', $this->aquarelle($washes, $paper));
 
         return app(PaletteExtractor::class)->extract(Storage::disk('public')->path('sonde.png'));
     }
@@ -78,10 +136,10 @@ class PaletteExtractionTest extends TestCase
      *
      * @param  array<string, float>  $washes
      */
-    private function aquarelle(array $washes): string
+    private function aquarelle(array $washes, string $paper): string
     {
         $image = imagecreatetruecolor(400, 300);
-        imagefill($image, 0, 0, $this->allocate($image, '#fcfaf5'));
+        imagefill($image, 0, 0, $this->allocate($image, $paper));
 
         $top = 0;
 

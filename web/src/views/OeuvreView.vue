@@ -176,16 +176,20 @@ function recadrer(): void {
 
       <p v-if="work.notes" class="note">{{ work.notes }}</p>
 
-      <h2>Pigments</h2>
-      <ul class="pigments">
-        <li v-for="pigment in work.pigments" :key="pigment.slug">
-          <RouterLink :to="{ name: 'pigment', params: { slug: pigment.slug } }">
-            <span class="pastille" :style="{ backgroundColor: pigment.hex }" aria-hidden="true" />
-            {{ pigment.name }}
-            <span class="part">{{ Math.round(pigment.weight * 100) }} % de la surface peinte</span>
-          </RouterLink>
-        </li>
-      </ul>
+      <!-- Un nuancier vide est un resultat legitime (feuille vierge, lavis qu'aucun tube
+           n'approche) : pas de titre au-dessus d'une liste vide. -->
+      <template v-if="work.pigments.length">
+        <h2>Pigments</h2>
+        <ul class="pigments">
+          <li v-for="pigment in work.pigments" :key="pigment.slug">
+            <RouterLink :to="{ name: 'pigment', params: { slug: pigment.slug } }">
+              <span class="pastille" :style="{ backgroundColor: pigment.hex }" aria-hidden="true" />
+              {{ pigment.name }}
+              <span class="part">{{ Math.round(pigment.weight * 100) }} % de la surface peinte</span>
+            </RouterLink>
+          </li>
+        </ul>
+      </template>
     </div>
   </article>
 
