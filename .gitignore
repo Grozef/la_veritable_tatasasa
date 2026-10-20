@@ -1,0 +1,9 @@
+# Fichiers d'outillage locaux, non versionnes
+.claude/
+.claudeignore
+CLAUDE.md
+documentation_claude/
+.playwright-mcp/
+.env
+# Demos de refonte : hors application, comme le depot designs/ du portfolio
+designs/
