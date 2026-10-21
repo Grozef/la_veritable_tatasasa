@@ -51,17 +51,16 @@ class ProcessWorkMedia implements ShouldQueue
     private function deriveTo(string $prefix): void
     {
         // `orient()` : sans redressement EXIF, une photo prise en portrait sort couchee.
-        $source = Image::fromStorage($this->media->path_original, $this->media->disk)->orient();
+        // L'original se lit sur son disque prive ; les derivees s'ecrivent sur `disk`, public.
+        $source = Image::fromStorage($this->media->path_original, $this->media->disk_original)->orient();
 
         foreach (Derivatives::widthsFor($this->media->width) as $width) {
             $scaled = $source->scale(width: $width);
 
             foreach (Derivatives::FORMATS as $format) {
-                // 82 plutot que le defaut de 70 : le grain du papier est le sujet meme
-                // d'une aquarelle, et c'est la premiere chose que la compression lisse.
                 $encoded = $format === 'avif' ? $scaled->toAvif() : $scaled->toWebp();
 
-                $encoded->quality(82)->storeAs("{$prefix}-{$width}.{$format}", null, $this->media->disk);
+                $encoded->quality(Derivatives::QUALITY)->storeAs("{$prefix}-{$width}.{$format}", null, $this->media->disk);
             }
         }
     }
@@ -69,7 +68,7 @@ class ProcessWorkMedia implements ShouldQueue
     private function syncPigments(PaletteExtractor $extractor): void
     {
         $this->media->work->syncPalette($extractor->extract(
-            Storage::disk($this->media->disk)->path($this->media->path_original)
+            Storage::disk($this->media->disk_original)->path($this->media->path_original)
         ));
     }
 }

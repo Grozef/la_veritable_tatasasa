@@ -9,6 +9,7 @@ use App\Http\Requests\StoreWorkRequest;
 use App\Http\Requests\UpdateWorkRequest;
 use App\Http\Resources\WorkResource;
 use App\Models\Work;
+use App\Services\CorbeilleMedias;
 use App\Support\Slug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -63,14 +64,16 @@ class WorkController extends Controller
 
     /**
      * Les medias et les liaisons de pigments partent en cascade (contraintes de
-     * schema). Les fichiers sur disque ne sont PAS supprimes ici : un effacement
-     * accidentel d'oeuvre ne doit pas detruire l'original de la numerisation.
+     * schema). L'original de la numerisation n'est jamais detruit par une suppression
+     * d'oeuvre : `CorbeilleMedias` le deplace dans la corbeille privee (`corbeille/` du
+     * disque `originaux`, recuperable a la main), tout ou rien ; seules les derivees
+     * publiques sont effacees.
      */
-    public function destroy(Work $work): Response
+    public function destroy(Work $work, CorbeilleMedias $corbeille): Response
     {
         $this->authorize('delete', $work);
 
-        $work->delete();
+        $corbeille->supprimerOeuvre($work);
 
         return response()->noContent();
     }

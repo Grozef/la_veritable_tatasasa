@@ -77,6 +77,31 @@ php artisan test
 ./vendor/bin/pint app      # style, limite a app/ : bootstrap/app.php est genere
 ```
 
+## Deploiement : originaux prives
+
+Depuis la migration `2026_10_21_120000_add_disk_original_to_work_media_table`, originaux et brutes vivent sur le disque `originaux` (`storage/app/originaux`), jamais servi ; `public` ne porte plus que les derivees. Ordre a suivre, sans en sauter :
+
+1. Deployer le code. Creer `storage/app/originaux` dans le stockage PERSISTANT (le meme que `storage/app/public`, partage entre les versions), hors de toute racine web et sans lien symbolique vers `public/` : `storage:link` ne doit exposer que `storage/app/public`.
+2. `php artisan migrate --force` : ajoute `disk_original`, recopie `disk` dans les lignes existantes (rien ne bouge sur disque).
+3. `php artisan queue:restart` : un worker lance avant le deploiement garde l'ancien code en memoire et lirait l'original au mauvais endroit.
+4. `php artisan works:originaux-prives --dry-run --orphelins` : relire la liste des originaux a deplacer, les introuvables (avertissements) et les orphelins (fichiers publics sous `works/` sans ligne).
+5. `php artisan works:originaux-prives` puis, si la liste des orphelins a ete validee, `php artisan works:originaux-prives --orphelins` : les orphelins sont DEPLACES sous `orphelins/` du disque prive, jamais supprimes. Un echec (ecriture, checksum different ou illisible) s'arrete en FAILURE sans rien supprimer.
+6. Seconde execution de controle : `php artisan works:originaux-prives --dry-run --orphelins` doit afficher `0 original(aux) a deplacer` et `0 orphelin(s) public(s) a deplacer`.
+7. `php artisan works:derivees-hd --dry-run`, puis `php artisan works:derivees-hd` : cree les derivees haute definition absentes, en lisant l'original sur le disque prive.
+8. Controle HTTP : l'URL publique d'un ancien original (`/storage/works/<ulid>/<nom>.<ext>`) repond 404 ; une derivee (`/storage/works/<ulid>/<nom>-400.webp`) repond 200 ; `/api/works` est inchange.
+
+Rollback : `down()` de la migration REFUSE (exception) tant qu'un media a son original hors du disque de ses derivees. Avant `migrate:rollback`, avec le code de cette version encore en place et l'app atelier arretee (un televersement irait de nouveau sur `originaux`) :
+
+```bash
+php artisan works:originaux-prives --retour --dry-run
+php artisan works:originaux-prives --retour   # fichiers ramenes sur public, puis disk_original = disk
+php artisan migrate:rollback --step=1
+```
+
+Les orphelins deplaces sous `orphelins/` restent prives au retour : les rendre publics les exposerait de nouveau. Un media signale introuvable par `--retour` bloque le rollback jusqu'a ce que son fichier soit retrouve ou sa ligne supprimee.
+
+Suppression : supprimer un media (ou une oeuvre, dont les medias partent en cascade) ne detruit jamais l'original, brute comprise. Il est DEPLACE dans la corbeille privee, `corbeille/<chemin relatif>` du disque `originaux` (suffixe `-2`, `-3`... si le chemin y existe deja, jamais d'ecrasement) ; seules ses derivees publiques (paliers et HD, AVIF et WebP) sont effacees, et seulement apres le DELETE reussi. Tout ou rien : si une mise a la corbeille ou le DELETE echoue, les originaux deja deplaces reviennent a leur place et l'erreur remonte (un retour impossible est journalise en `critical`, le fichier reste alors en corbeille). Un original introuvable (ni sur son disque, ni au meme chemin sur `originaux`) n'empeche pas la suppression : avertissement dans le journal. Le seul chemin de suppression est `App\Services\CorbeilleMedias` ; un `delete()` direct sur `Work` ou `WorkMedia` leve une `LogicException`. Recuperation a la main (recopier le fichier, recreer le media) ; la corbeille ne se vide pas seule et se purge manuellement.
+
 ## Variables d'environnement
 
 | Variable | Valeur | Role |

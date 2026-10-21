@@ -28,6 +28,31 @@ final class Derivatives
     public const FORMATS = ['avif', 'webp'];
 
     /**
+     * 82 plutot que le defaut de 70 : le grain du papier est le sujet meme d'une
+     * aquarelle, et c'est la premiere chose que la compression lisse. Partagee par le
+     * job et par `works:derivees-hd`, qui doivent produire les memes fichiers.
+     */
+    public const QUALITY = 82;
+
+    /**
+     * Vrai si `$path` est une derivee de `$prefix` (`<prefixe>-<largeur>.<format>`),
+     * quelle que soit la largeur : une HD produite sous une ancienne regle compte aussi.
+     */
+    public static function derivesFrom(string $path, string $prefix): bool
+    {
+        return preg_match('/^'.preg_quote($prefix, '/').'-\d+\.('.implode('|', self::FORMATS).')$/', $path) === 1;
+    }
+
+    /**
+     * Vrai si le nom suit le motif des derivees. Un original n'y repond jamais : son nom
+     * vient de `hashName()` (40 caracteres alphanumeriques, sans tiret).
+     */
+    public static function isDerivative(string $path): bool
+    {
+        return preg_match('/-\d+\.('.implode('|', self::FORMATS).')$/', $path) === 1;
+    }
+
+    /**
      * Attribut `srcset` complet pour un format donne, largeurs reelles comprises.
      * Les largeurs superieures a l'original sont omises : agrandir une aquarelle
      * numerisee n'ajoute aucun detail et alourdit la page.

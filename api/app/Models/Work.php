@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\PaperGrain;
 use App\Enums\WorkStatus;
 use App\Policies\WorkPolicy;
+use App\Services\CorbeilleMedias;
 use Database\Factories\WorkFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -32,6 +33,15 @@ class Work extends Model
     use HasFactory;
 
     use HasUlids;
+
+    /**
+     * Garde-fou : la suppression passe par `CorbeilleMedias`. La cascade de schema
+     * emporterait les lignes `work_media` sans mettre leurs originaux a l'abri.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(fn () => CorbeilleMedias::exigerPassage());
+    }
 
     /**
      * La cle primaire reste l'auto-increment ; le ULID est une colonne a part,

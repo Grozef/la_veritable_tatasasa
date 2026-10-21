@@ -18,6 +18,7 @@ class ApercuTest extends TestCase
     public function test_serves_the_largest_derivative_the_original_could_feed(): void
     {
         Storage::fake('public');
+        Storage::fake('originaux');
         $work = $this->workAvecMedia(1200);
 
         // 1600 existe sur le disque mais depasse l'original : la servir reviendrait a
@@ -36,8 +37,9 @@ class ApercuTest extends TestCase
     public function test_falls_back_to_the_original_before_the_job_has_run(): void
     {
         Storage::fake('public');
+        Storage::fake('originaux');
         $work = $this->workAvecMedia(1200, derivees: false);
-        Storage::disk('public')->put('works/x/photo.jpg', 'original');
+        Storage::disk('originaux')->put('works/x/photo.jpg', 'original');
 
         $reponse = $this->actingAs(User::factory()->create())
             ->get("/api/studio/works/{$work->ulid}/apercu")
@@ -49,6 +51,7 @@ class ApercuTest extends TestCase
     public function test_refuses_anonymous_callers_and_works_without_a_main_image(): void
     {
         Storage::fake('public');
+        Storage::fake('originaux');
         $work = $this->workAvecMedia(1200);
 
         /*

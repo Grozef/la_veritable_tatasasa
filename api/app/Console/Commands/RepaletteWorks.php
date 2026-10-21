@@ -48,7 +48,7 @@ class RepaletteWorks extends Command
             }
 
             $work->syncPalette($extractor->extract(
-                Storage::disk($media->disk)->path($media->path_original)
+                Storage::disk($media->disk_original)->path($media->path_original)
             ));
 
             $pigments = $work->load('pigments')->pigments;

@@ -47,6 +47,17 @@ return [
             'report' => false,
         ],
 
+        // Originaux televerses et photos brutes : jamais servis. Ni `url` ni `serve`, et
+        // hors de `app/public` (expose par `storage:link`) comme de `app/private` (servi
+        // sur `/storage/{path}` par le disque `local`, sous signature).
+        'originaux' => [
+            'driver' => 'local',
+            'root' => storage_path('app/originaux'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

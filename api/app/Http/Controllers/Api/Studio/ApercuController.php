@@ -36,19 +36,18 @@ class ApercuController extends Controller
 
         // La plus grande derivee que l'original a pu nourrir, sinon l'original lui-meme :
         // le visuel de partage sort en 1080 px, une derivee de 400 px y serait molle.
-        $chemin = $media->path_original;
-
         if ($media->path_web !== null) {
             foreach (array_reverse(Derivatives::WIDTHS) as $largeur) {
                 $candidat = "{$media->path_web}-{$largeur}.webp";
 
                 if ($largeur <= $media->width && $disque->exists($candidat)) {
-                    $chemin = $candidat;
-                    break;
+                    return $disque->response($candidat);
                 }
             }
         }
 
-        return $disque->response($chemin);
+        // L'original vit sur un disque prive : seule cette route authentifiee le lit,
+        // pour l'artiste elle-meme, le temps que le job ait produit les derivees.
+        return Storage::disk($media->disk_original)->response($media->path_original);
     }
 }

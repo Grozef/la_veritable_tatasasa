@@ -42,6 +42,10 @@ class ProcessWorkMediaTest extends TestCase
         $disk->assertMissing('works/sonde/aquarelle-1600.avif');
         $disk->assertMissing('works/sonde/aquarelle-3000.avif');
 
+        // L'original n'existe que sur le disque prive : les derivees en viennent, et le
+        // job ne le recopie pas sur le disque public.
+        $disk->assertMissing('works/sonde/aquarelle.jpg');
+
         $this->assertSame('works/sonde/aquarelle', $media->fresh()->path_web);
     }
 
@@ -76,6 +80,7 @@ class ProcessWorkMediaTest extends TestCase
     private function uploadedMedia(MediaRole $role): WorkMedia
     {
         Storage::fake('public');
+        Storage::fake('originaux');
 
         $image = imagecreatetruecolor(900, 600);
         imagefill($image, 0, 0, imagecolorallocate($image, 0xFC, 0xFA, 0xF5));
@@ -83,7 +88,7 @@ class ProcessWorkMediaTest extends TestCase
 
         ob_start();
         imagejpeg($image);
-        Storage::disk('public')->put('works/sonde/aquarelle.jpg', (string) ob_get_clean());
+        Storage::disk('originaux')->put('works/sonde/aquarelle.jpg', (string) ob_get_clean());
 
         return Work::factory()->create()->media()->create([
             'role' => $role,

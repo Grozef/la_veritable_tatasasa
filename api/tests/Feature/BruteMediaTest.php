@@ -58,6 +58,7 @@ class BruteMediaTest extends TestCase
     public function test_uploading_a_raw_photo_queues_no_derivation_job(): void
     {
         Storage::fake('public');
+        Storage::fake('originaux');
         Bus::fake();
 
         $work = Work::factory()->create();

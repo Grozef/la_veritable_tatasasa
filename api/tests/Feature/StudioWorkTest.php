@@ -124,9 +124,10 @@ class StudioWorkTest extends TestCase
         $this->getJson('/api/works')->assertJsonCount(1, 'data');
     }
 
-    public function test_deleting_a_work_cascades_to_its_media(): void
+    public function test_deleting_a_work_cascades_to_its_media_and_trashes_originals(): void
     {
         Storage::fake('public');
+        Storage::fake('originaux');
         $artiste = $this->artiste();
         $work = Work::factory()->create();
 
@@ -137,6 +138,7 @@ class StudioWorkTest extends TestCase
             ->assertCreated();
 
         $this->assertDatabaseCount('work_media', 1);
+        $this->assertNotEmpty(Storage::disk('public')->allFiles("works/{$work->ulid}"));
 
         $this->actingAs($artiste)
             ->deleteJson("/api/studio/works/{$work->ulid}")
@@ -144,5 +146,10 @@ class StudioWorkTest extends TestCase
 
         $this->assertDatabaseCount('works', 0);
         $this->assertDatabaseCount('work_media', 0);
+        // La cascade de schema n'emporte que les lignes : `Work` met l'original a la
+        // corbeille privee et efface les derivees, rien ne reste sur `public`.
+        $this->assertSame([], Storage::disk('originaux')->allFiles("works/{$work->ulid}"));
+        $this->assertCount(1, Storage::disk('originaux')->allFiles("corbeille/works/{$work->ulid}"));
+        $this->assertSame([], Storage::disk('public')->allFiles("works/{$work->ulid}"));
     }
 }
