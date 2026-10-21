@@ -8,7 +8,7 @@ import { useTitre } from '@/composables/titre'
 const props = defineProps<{ slug: string }>()
 
 const store = useWorksStore()
-const { filtrees, pigments, chargement } = storeToRefs(store)
+const { filtrees, pigments, chargement, erreur } = storeToRefs(store)
 
 /*
  * La vue pigment n'est pas un filtre a part : elle POSE la selection du nuancier.
@@ -26,7 +26,11 @@ watch(
 
 const pigment = computed(() => pigments.value.find((p) => p.slug === props.slug) ?? null)
 
-useTitre(() => pigment.value?.name)
+useTitre(
+  () =>
+    pigment.value?.name ??
+    (chargement.value ? null : erreur.value ? 'Pigment indisponible' : 'Pigment introuvable'),
+)
 </script>
 
 <template>
@@ -42,11 +46,22 @@ useTitre(() => pigment.value?.name)
       <h1>{{ pigment.name }}</h1>
       <p v-if="pigment.brand">{{ pigment.brand }}</p>
       <p class="compte">
-        {{ filtrees.length }} oeuvre{{ filtrees.length > 1 ? 's' : '' }} au carnet
+        {{ filtrees.length }} œuvre{{ filtrees.length > 1 ? 's' : '' }} au carnet
       </p>
     </header>
 
-    <p v-else class="etat">Ce pigment n'est porte par aucune oeuvre publiee.</p>
+    <div v-else-if="erreur" class="etat">
+      <h1 class="lecteur-seul">Pigment indisponible</h1>
+      <p role="alert">
+        Le nuancier n'a pas pu s'ouvrir.
+        <button type="button" @click="store.charger()">Réessayer</button>
+      </p>
+    </div>
+
+    <div v-else class="etat">
+      <h1 class="lecteur-seul">Pigment introuvable</h1>
+      <p>Ce pigment n'est porté par aucune œuvre publiée.</p>
+    </div>
 
     <CarnetGrid :works="filtrees" />
   </section>
@@ -86,5 +101,15 @@ p {
 
 .etat {
   padding: var(--marge);
+}
+
+button {
+  margin-left: 0.5rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 </style>

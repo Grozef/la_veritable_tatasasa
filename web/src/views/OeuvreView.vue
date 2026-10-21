@@ -10,7 +10,12 @@ const store = useWorksStore()
 onMounted(() => store.charger())
 
 const work = computed(() => store.parSlug(props.slug))
-useTitre(() => work.value?.title ?? (store.chargement ? null : 'Œuvre introuvable'))
+// Absente d'un carnet bien charge : introuvable. Carnet en echec : indisponible, a reessayer.
+useTitre(
+  () =>
+    work.value?.title ??
+    (store.chargement ? null : store.erreur ? 'Œuvre indisponible' : 'Œuvre introuvable'),
+)
 
 const media = computed(
   () => work.value?.media.find((m) => m.role === 'principal') ?? work.value?.media[0] ?? null,
@@ -18,7 +23,7 @@ const media = computed(
 
 const grains: Record<string, string> = {
   torchon: 'grain torchon',
-  satine: 'grain satine',
+  satine: 'grain satiné',
   fin: 'grain fin',
 }
 
@@ -44,6 +49,11 @@ const transformation = computed(() => ({
 }))
 
 const borner = (valeur: number) => Math.min(6, Math.max(1, valeur))
+
+/** Virgule decimale a la francaise : « 2,5× » et non « 2.5x ». */
+const echelleLue = computed(() =>
+  echelle.value.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+)
 
 function zoomer(facteur: number, px: number, py: number): void {
   const suivante = borner(echelle.value * facteur)
@@ -212,7 +222,7 @@ function clavier(event: KeyboardEvent): void {
           :style="[transformation, { viewTransitionName: `oeuvre-${work.slug}` }]"
         />
       </picture>
-      <p v-else class="etat">Les derivees de cette image ne sont pas encore pretes.</p>
+      <p v-else class="etat">Les dérivées de cette image ne sont pas encore prêtes.</p>
     </div>
 
     <!-- Visible des que le cadre a le focus clavier : la touche doit se trouver sans
@@ -222,27 +232,27 @@ function clavier(event: KeyboardEvent): void {
     </p>
 
     <p v-if="echelle > 1" class="aide">
-      Echelle {{ echelle.toFixed(1) }}x — double clic pour recadrer
+      Échelle {{ echelleLue }}× — double-clic pour recadrer
     </p>
 
     <div class="fiche">
       <h1>{{ work.title }}</h1>
 
       <dl>
-        <dt>Annee</dt>
+        <dt>Année</dt>
         <dd>{{ work.year }}</dd>
 
         <dt>Technique</dt>
         <dd>{{ work.medium }}, {{ grains[work.paperGrain] ?? work.paperGrain }}</dd>
 
         <dt>Dimensions</dt>
-        <dd>{{ work.widthMm }} x {{ work.heightMm }} mm</dd>
+        <dd>{{ work.widthMm }}&nbsp;×&nbsp;{{ work.heightMm }}&nbsp;mm</dd>
 
-        <dt>Statut</dt>
-        <dd>{{ work.status }}</dd>
+        <!-- Statut masque sur le site public : son affichage (dont « vendue ») est une
+             decision ouverte avec l'artiste, voir PRODUCT.md, « Decisions ouvertes ». -->
 
         <template v-if="work.series">
-          <dt>Serie</dt>
+          <dt>Série</dt>
           <dd>
             <RouterLink :to="{ name: 'serie', params: { slug: work.series.slug } }">
               {{ work.series.title }}
@@ -262,7 +272,7 @@ function clavier(event: KeyboardEvent): void {
             <RouterLink :to="{ name: 'pigment', params: { slug: pigment.slug } }">
               <span class="pastille" :style="{ backgroundColor: pigment.hex }" aria-hidden="true" />
               {{ pigment.name }}
-              <span class="part">{{ Math.round(pigment.weight * 100) }} % de la surface peinte</span>
+              <span class="part">{{ Math.round(pigment.weight * 100) }}&nbsp;% de la surface peinte</span>
             </RouterLink>
           </li>
         </ul>
@@ -270,12 +280,20 @@ function clavier(event: KeyboardEvent): void {
     </div>
   </article>
 
-  <p v-else-if="store.chargement" class="etat">Ouverture de l'oeuvre…</p>
+  <p v-else-if="store.chargement" class="etat">Ouverture de l'œuvre…</p>
+
+  <div v-else-if="store.erreur" class="etat">
+    <h1 class="lecteur-seul">Œuvre indisponible</h1>
+    <p role="alert">
+      Le carnet n'a pas pu s'ouvrir.
+      <button type="button" @click="store.charger()">Réessayer</button>
+    </p>
+  </div>
 
   <div v-else class="etat">
     <h1 class="lecteur-seul">Œuvre introuvable</h1>
     <p>
-      Cette oeuvre n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
+      Cette œuvre n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
     </p>
   </div>
 </template>
@@ -420,5 +438,15 @@ dd {
 .etat {
   padding: var(--marge);
   color: var(--encre-pale);
+}
+
+.etat button {
+  margin-left: 0.5rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 </style>

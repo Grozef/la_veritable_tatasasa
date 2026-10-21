@@ -10,12 +10,12 @@
   <section class="page">
     <h1>L'atelier</h1>
 
-    <p class="a-fournir">[Texte de presentation a fournir par l'artiste.]</p>
+    <p class="a-fournir">[Texte de présentation à fournir par l'artiste.]</p>
 
     <h2>La technique</h2>
     <p class="a-fournir">
-      [Papiers, pigments et facon de travailler — a fournir par l'artiste. Le nuancier du
-      site sera seede avec ses vrais tubes, marque et nom exact.]
+      [Papiers, pigments et façon de travailler — à fournir par l'artiste. Le nuancier du
+      site sera constitué de ses vrais tubes, marque et nom exacts.]
     </p>
   </section>
 </template>

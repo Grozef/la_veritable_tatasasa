@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import CarnetGrid from '@/components/CarnetGrid.vue'
-import { api } from '@/api/client'
+import { api, ErreurApi } from '@/api/client'
 import type { Series } from '@/api/types'
 import { useTitre } from '@/composables/titre'
 
@@ -12,23 +12,35 @@ const props = defineProps<{ slug: string }>()
  * oeuvres, dans son propre ordre, et le carnet ne les connait pas groupees.
  */
 const serie = ref<Series | null>(null)
-const erreur = ref<string | null>(null)
+/** `introuvable` : l'API a rendu 404. `indisponible` : toute autre panne, a reessayer. */
+const echec = ref<'introuvable' | 'indisponible' | null>(null)
 
-watch(
-  () => props.slug,
-  async (slug) => {
-    erreur.value = null
+async function charger(slug: string): Promise<void> {
+  // Remise a zero : passer de A a B ne doit laisser ni la grille ni le titre de A.
+  serie.value = null
+  echec.value = null
 
-    try {
-      serie.value = await api.series(slug)
-    } catch (cause) {
-      erreur.value = cause instanceof Error ? cause.message : 'Serie introuvable'
+  try {
+    const recue = await api.series(slug)
+
+    // Une reponse arrivee apres un changement de serie ne s'affiche pas.
+    if (slug === props.slug) {
+      serie.value = recue
     }
-  },
-  { immediate: true },
-)
+  } catch (cause) {
+    if (slug === props.slug) {
+      echec.value = cause instanceof ErreurApi && cause.statut === 404 ? 'introuvable' : 'indisponible'
+    }
+  }
+}
 
-useTitre(() => serie.value?.title ?? (erreur.value ? 'Série introuvable' : null))
+watch(() => props.slug, charger, { immediate: true })
+
+useTitre(
+  () =>
+    serie.value?.title ??
+    (echec.value === 'introuvable' ? 'Série introuvable' : echec.value ? 'Série indisponible' : null),
+)
 </script>
 
 <template>
@@ -42,9 +54,22 @@ useTitre(() => serie.value?.title ?? (erreur.value ? 'Série introuvable' : null
     <CarnetGrid :works="serie.works ?? []" />
   </section>
 
-  <p v-else-if="erreur" class="etat" role="alert">Cette serie n'est pas au carnet.</p>
+  <div v-else-if="echec === 'introuvable'" class="etat">
+    <h1 class="lecteur-seul">Série introuvable</h1>
+    <p>
+      Cette série n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
+    </p>
+  </div>
 
-  <p v-else class="etat">Ouverture de la serie…</p>
+  <div v-else-if="echec" class="etat">
+    <h1 class="lecteur-seul">Série indisponible</h1>
+    <p role="alert">
+      La série n'a pas pu s'ouvrir.
+      <button type="button" @click="charger(slug)">Réessayer</button>
+    </p>
+  </div>
+
+  <p v-else class="etat">Ouverture de la série…</p>
 </template>
 
 <style scoped>
@@ -72,5 +97,15 @@ h1 {
 .etat {
   padding: var(--marge);
   color: var(--encre-pale);
+}
+
+button {
+  margin-left: 0.5rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 </style>

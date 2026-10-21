@@ -25,7 +25,7 @@ import Nuancier from '@/components/Nuancier.vue'
     </main>
 
     <footer>
-      <p>Aquarelles — toutes les images restent la propriete de l'artiste.</p>
+      <p>Aquarelles — toutes les images restent la propriété de l'artiste.</p>
     </footer>
   </div>
 </template>

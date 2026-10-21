@@ -13,13 +13,27 @@ interface Enveloppe<T> {
   data: T
 }
 
+/**
+ * Reponse HTTP en echec. Le statut distingue une ressource absente (404, rendu par la
+ * liaison de modele Laravel) d'une panne : la vue ne dit pas « introuvable » a tort.
+ * Une coupure reseau, elle, reste un `TypeError` de `fetch`.
+ */
+export class ErreurApi extends Error {
+  readonly statut: number
+
+  constructor(chemin: string, statut: number) {
+    super(`${chemin} a rendu ${statut}`)
+    this.statut = statut
+  }
+}
+
 async function get<T>(chemin: string): Promise<T> {
   const reponse = await fetch(`${BASE}${chemin}`, {
     headers: { Accept: 'application/json' },
   })
 
   if (!reponse.ok) {
-    throw new Error(`${chemin} a rendu ${reponse.status}`)
+    throw new ErreurApi(chemin, reponse.status)
   }
 
   return ((await reponse.json()) as Enveloppe<T>).data

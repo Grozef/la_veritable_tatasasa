@@ -112,6 +112,8 @@ router.afterEach(async (to, from, echec) => {
 
   if (cible) {
     cible.setAttribute('tabindex', '-1')
+    // Retire des que le focus repart : sinon un clic dans la page y ramenerait le focus.
+    cible.addEventListener('blur', () => cible.removeAttribute('tabindex'), { once: true })
     cible.focus({ preventScroll: true })
   }
 })

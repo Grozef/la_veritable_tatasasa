@@ -8,12 +8,12 @@
 
 <template>
   <section class="page">
-    <h1>Ecrire a l'atelier</h1>
+    <h1>Écrire à l'atelier</h1>
 
-    <p class="a-fournir">[Adresse de contact a fournir par l'artiste.]</p>
+    <p class="a-fournir">[Adresse de contact à fournir par l'artiste.]</p>
 
     <p>
-      Pour une oeuvre en particulier, indiquez son titre et son annee : ils figurent sous
+      Pour une œuvre en particulier, indiquez son titre et son année&nbsp;: ils figurent sous
       chaque image du carnet.
     </p>
   </section>
