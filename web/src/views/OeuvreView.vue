@@ -26,19 +26,33 @@ const media = computed(
  * Le srcset suffit a l'echelle 1 ; au-dela il etirerait au mieux 800 px. Une fois
  * chargee elle reste en place (recadrer puis rezoomer ne la redemande pas). Retenue par
  * URL, pour qu'une autre fiche reparte du srcset. Fichier absent (media derive avant la
- * HD) : retour au srcset plutot qu'une image cassee.
+ * HD) : la HD avif manquante cede a la HD webp, la HD webp manquante au srcset, plutot
+ * qu'une image cassee. Chaque echec est retenu : aucune URL n'est redemandee.
  */
 const hdPour = ref<string | null>(null)
 const hdEchouee = ref<string | null>(null)
+const hdAvifEchouee = ref<string | null>(null)
 const hd = computed(() => {
   const source = media.value?.hd
   return source && hdPour.value === source.webp && hdEchouee.value !== source.webp ? source : null
 })
+const hdAvif = computed(() =>
+  hd.value && hdAvifEchouee.value !== hd.value.avif ? hd.value.avif : null,
+)
 
-function hdIndisponible(): void {
-  if (hd.value) {
-    hdEchouee.value = hd.value.webp
+function hdIndisponible(event: Event): void {
+  if (!hd.value) {
+    return
   }
+
+  // Seule l'avif a echoue : on retire sa source, le navigateur passe a la HD webp de l'image.
+  const echec = (event.target as HTMLImageElement).currentSrc
+  if (hdAvif.value && echec === new URL(hdAvif.value, document.baseURI).href) {
+    hdAvifEchouee.value = hdAvif.value
+    return
+  }
+
+  hdEchouee.value = hd.value.webp
 }
 
 const grains: Record<string, string> = {
@@ -242,8 +256,9 @@ function clavier(event: KeyboardEvent): void {
            Une fois zoomee, la HD remplace le srcset (URL seule, densite 1x). -->
       <picture v-if="media?.sources">
         <source
+          v-if="!hd || hdAvif"
           type="image/avif"
-          :srcset="hd ? hd.avif : media.sources.avif"
+          :srcset="hdAvif ?? media.sources.avif"
           :sizes="hd ? undefined : '(min-width: 70rem) 65vw, 100vw'"
         />
         <img

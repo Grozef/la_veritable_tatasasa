@@ -5,16 +5,25 @@ import type { Work } from '@/api/types'
 defineProps<{ works: Work[] }>()
 
 /*
- * Largeur reelle d'une colonne, deduite de la grille ci-dessous (marge et gouttiere en
- * clamp sur 4vw, colonnes de 18rem minimum) : 1 colonne sous 41rem, 2 jusqu'a 65rem,
- * 3 jusqu'a 90rem, 4 jusqu'a 112rem, 5 au-dela. A 1440 px une colonne fait 289 px, et non
- * les 432 px qu'annoncait `30vw`.
+ * Largeur reelle d'une colonne, deduite de la grille ci-dessous. Marge m = clamp(16, 4vw, 64),
+ * gouttiere g = clamp(24, 4vw, 56), colonnes de 288 px minimum : n colonnes des que
+ * n x 288 + (n - 1) x g <= W - 2m, soit 2 a 654 px, 3 a 1029, 4 a 1435. Au-dela de 100rem
+ * (marge et gouttiere plafonnees), n colonnes a partir de 344n + 72 px, chacune de
+ * W/n - 56 - 72/n px : 5 a 1792, 6 a 2136, 7 a 2480, 8 a 2824, 9 a 3168, 10 a 3512 (11 a
+ * 3856 : la valeur annoncee y depasse la colonne, jamais l'inverse). Seuils arrondis au-dessus.
  */
 const TAILLES = [
-  '(min-width: 112rem) calc(20vw - 70px)',
-  '(min-width: 90rem) calc(23vw - 42px)',
-  '(min-width: 65rem) 28vw',
-  '(min-width: 41rem) 44vw',
+  '(min-width: 219.5rem) calc(10vw - 63.2px)',
+  '(min-width: 198rem) calc(11.111vw - 64px)',
+  '(min-width: 176.5rem) calc(12.5vw - 65px)',
+  '(min-width: 155rem) calc(14.286vw - 66.3px)',
+  '(min-width: 133.5rem) calc(16.667vw - 68px)',
+  '(min-width: 112rem) calc(20vw - 70.4px)',
+  '(min-width: 100rem) calc(25vw - 74px)',
+  '(min-width: 89.68rem) calc(23vw - 42px)',
+  '(min-width: 87.5rem) calc(30.667vw - 37.3px)',
+  '(min-width: 64.29rem) 28vw',
+  '(min-width: 40.91rem) 44vw',
   '(min-width: 25rem) 92vw',
   'calc(100vw - 2rem)',
 ].join(', ')
