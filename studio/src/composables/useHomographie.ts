@@ -100,6 +100,24 @@ export function projeter(h: Homographie, point: Point): Point {
 }
 
 /**
+ * Coins proposes a l'ouverture du redressement, dans l'ordre haut-gauche, haut-droit,
+ * bas-droit, bas-gauche : en retrait de `retrait` (fraction de chaque cote) a l'interieur
+ * de la photo. Poses sur les bords memes, les poignees tomberaient sur le bord de l'ecran,
+ * la ou Android lit le geste retour.
+ */
+export function coinsParDefaut(largeur: number, hauteur: number, retrait = 0.06): Point[] {
+  const dx = largeur * retrait
+  const dy = hauteur * retrait
+
+  return [
+    { x: dx, y: dy },
+    { x: largeur - dx, y: dy },
+    { x: largeur - dx, y: hauteur - dy },
+    { x: dx, y: hauteur - dy },
+  ]
+}
+
+/**
  * Taille de la feuille redressee, deduite des quatre coins.
  *
  * On prend le PLUS GRAND des deux bords opposes : c'est le bord le plus proche de

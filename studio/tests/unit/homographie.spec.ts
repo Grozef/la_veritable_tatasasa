@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  coinsParDefaut,
   homographie,
   projeter,
   redresser,
@@ -169,5 +170,25 @@ describe('redresser', () => {
     ])
 
     expect(rouge(sortie, 0, 0)).toBe(120)
+  })
+})
+
+describe('coinsParDefaut', () => {
+  it('pose les coins en retrait a l interieur de la photo, ordre hg, hd, bd, bg', () => {
+    expect(coinsParDefaut(1000, 500)).toEqual([
+      { x: 60, y: 30 },
+      { x: 940, y: 30 },
+      { x: 940, y: 470 },
+      { x: 60, y: 470 },
+    ])
+  })
+
+  it('retrait nul : les bords memes de la photo', () => {
+    expect(coinsParDefaut(400, 300, 0)).toEqual([
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+      { x: 400, y: 300 },
+      { x: 0, y: 300 },
+    ])
   })
 })

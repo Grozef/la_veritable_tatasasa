@@ -44,6 +44,18 @@ export function versToile(pixels: Pixels, toile = document.createElement('canvas
 }
 
 /**
+ * Echelle d'affichage d'une photo dans une boite : la plus petite des deux, pour qu'elle
+ * tienne entiere en largeur ET en hauteur (paysage compris).
+ */
+export function echelleAjustee(largeur: number, hauteur: number, boite: { largeur: number; hauteur: number }): number {
+  if (largeur <= 0 || hauteur <= 0 || boite.largeur <= 0 || boite.hauteur <= 0) {
+    return 1
+  }
+
+  return Math.min(boite.largeur / largeur, boite.hauteur / hauteur)
+}
+
+/**
  * Copie reduite, pour les apercus qui se recalculent a chaque geste. Recalculer une
  * balance des blancs sur 9 megapixels a chaque mouvement de doigt saccaderait.
  */

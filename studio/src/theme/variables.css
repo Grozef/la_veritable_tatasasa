@@ -1,2 +1,11 @@
 /* For information on how to create your own theme, please refer to:
 http://ionicframework.com/docs/theming/ */
+
+/*
+ * Android : 48dp de zone de toucher pour tout bouton. Ionic md n'en donne que 36 (32 dans
+ * ion-buttons) et n'etend pas la zone au-dela de la boite. `ion-app` devant passe la
+ * specificite (0,1,2) au-dessus du style scoped `.sc-ion-buttons-md-s ion-button` (0,1,1).
+ */
+ion-app ion-button.button {
+  min-height: 48px;
+}

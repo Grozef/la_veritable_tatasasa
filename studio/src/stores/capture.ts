@@ -1,6 +1,6 @@
 import { reactive, ref, shallowRef } from 'vue'
 import { appliquerGains, BLANC_PAPIER, type Rvb } from '@/composables/useBalanceBlanc'
-import type { Pixels, Point } from '@/composables/useHomographie'
+import { coinsParDefaut, type Pixels, type Point } from '@/composables/useHomographie'
 import { creerRendu, REGLAGES_NEUTRES, reglagesNeutres, type Reglages } from '@/services/filtres'
 
 /**
@@ -51,13 +51,8 @@ export function useCapture() {
     gains.value = { r: 1, g: 1, b: 1 }
     Object.assign(reglages, REGLAGES_NEUTRES)
 
-    // Coins par defaut : les bords de la photo. L'artiste les tire sur ceux de la feuille.
-    coins.value = [
-      { x: 0, y: 0 },
-      { x: pixels.width, y: 0 },
-      { x: pixels.width, y: pixels.height },
-      { x: 0, y: pixels.height },
-    ]
+    // Coins par defaut : en leger retrait des bords de la photo. L'artiste les tire sur ceux de la feuille.
+    coins.value = coinsParDefaut(pixels.width, pixels.height)
   }
 
   function oublier(): void {
