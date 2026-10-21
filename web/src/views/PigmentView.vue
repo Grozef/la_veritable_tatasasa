@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import CarnetGrid from '@/components/CarnetGrid.vue'
 import { useWorksStore } from '@/stores/works'
+import { useTitre } from '@/composables/titre'
 
 const props = defineProps<{ slug: string }>()
 
@@ -24,6 +25,8 @@ watch(
 )
 
 const pigment = computed(() => pigments.value.find((p) => p.slug === props.slug) ?? null)
+
+useTitre(() => pigment.value?.name)
 </script>
 
 <template>

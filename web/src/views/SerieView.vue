@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import CarnetGrid from '@/components/CarnetGrid.vue'
 import { api } from '@/api/client'
 import type { Series } from '@/api/types'
+import { useTitre } from '@/composables/titre'
 
 const props = defineProps<{ slug: string }>()
 
@@ -26,6 +27,8 @@ watch(
   },
   { immediate: true },
 )
+
+useTitre(() => serie.value?.title ?? (erreur.value ? 'Série introuvable' : null))
 </script>
 
 <template>

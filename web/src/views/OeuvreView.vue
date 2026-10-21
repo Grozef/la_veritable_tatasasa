@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useWorksStore } from '@/stores/works'
+import { useTitre } from '@/composables/titre'
 
 const props = defineProps<{ slug: string }>()
 
@@ -9,6 +10,8 @@ const store = useWorksStore()
 onMounted(() => store.charger())
 
 const work = computed(() => store.parSlug(props.slug))
+useTitre(() => work.value?.title ?? (store.chargement ? null : 'Œuvre introuvable'))
+
 const media = computed(
   () => work.value?.media.find((m) => m.role === 'principal') ?? work.value?.media[0] ?? null,
 )
@@ -118,12 +121,56 @@ function recadrer(): void {
   dx.value = 0
   dy.value = 0
 }
+
+/*
+ * Le meme zoom au clavier, sur le cadre focalise : + et - autour du centre, 0 pour
+ * recadrer, fleches pour se deplacer une fois l'image agrandie. A l'echelle 1 les
+ * fleches sont laissees a la page, qui doit encore defiler.
+ */
+const PAS = 40
+
+function clavier(event: KeyboardEvent): void {
+  // Ctrl/Cmd +, -, 0 : le zoom de PAGE du navigateur, dont dependent les malvoyants.
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return
+  }
+
+  const cadre = event.currentTarget as HTMLElement
+  const [cx, cy] = [cadre.clientWidth / 2, cadre.clientHeight / 2]
+  const deplacements: Record<string, [number, number]> = {
+    ArrowLeft: [PAS, 0],
+    ArrowRight: [-PAS, 0],
+    ArrowUp: [0, PAS],
+    ArrowDown: [0, -PAS],
+  }
+
+  if (event.key === '+' || event.key === '=') {
+    zoomer(1.25, cx, cy)
+  } else if (event.key === '-') {
+    zoomer(1 / 1.25, cx, cy)
+  } else if (event.key === '0') {
+    recadrer()
+  } else if (deplacements[event.key] && echelle.value > 1) {
+    const [x, y] = deplacements[event.key]!
+    dx.value += x
+    dy.value += y
+  } else {
+    return
+  }
+
+  event.preventDefault()
+}
 </script>
 
 <template>
   <article v-if="work" class="oeuvre">
     <div
       class="cadre"
+      :tabindex="media?.sources ? 0 : undefined"
+      :role="media?.sources ? 'group' : undefined"
+      :aria-label="media?.sources ? `Zoom sur ${work.title}` : undefined"
+      :aria-describedby="media?.sources ? 'consigne-zoom' : undefined"
+      @keydown="clavier"
       @pointerdown="saisir"
       @pointermove="deplacer"
       @pointerup="lacher"
@@ -143,6 +190,12 @@ function recadrer(): void {
       </picture>
       <p v-else class="etat">Les derivees de cette image ne sont pas encore pretes.</p>
     </div>
+
+    <!-- Visible des que le cadre a le focus clavier : la touche doit se trouver sans
+         avoir a la deviner. -->
+    <p v-if="media?.sources" id="consigne-zoom" class="aide consigne">
+      Touches + et − pour agrandir, flèches pour se déplacer, 0 pour revenir au cadre.
+    </p>
 
     <p v-if="echelle > 1" class="aide">
       Echelle {{ echelle.toFixed(1) }}x — double clic pour recadrer
@@ -195,9 +248,12 @@ function recadrer(): void {
 
   <p v-else-if="store.chargement" class="etat">Ouverture de l'oeuvre…</p>
 
-  <p v-else class="etat">
-    Cette oeuvre n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
-  </p>
+  <div v-else class="etat">
+    <h1 class="lecteur-seul">Œuvre introuvable</h1>
+    <p>
+      Cette oeuvre n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
+    </p>
+  </div>
 </template>
 
 <style scoped>
@@ -215,6 +271,11 @@ function recadrer(): void {
 
   .aide {
     grid-column: 1;
+  }
+
+  .fiche {
+    grid-column: 2;
+    grid-row: 1 / span 3;
   }
 }
 
@@ -244,6 +305,24 @@ img {
   margin: 0;
   color: var(--encre-pale);
   font-size: 0.85rem;
+}
+
+/* Hors de la page tant que le cadre n'a pas le focus clavier, lue quand meme. */
+.consigne {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cadre:focus-visible + .consigne {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  white-space: normal;
 }
 
 .fiche h1 {

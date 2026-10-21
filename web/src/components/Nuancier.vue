@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorksStore } from '@/stores/works'
@@ -15,6 +16,13 @@ const { pigments, selection } = storeToRefs(store)
 
 const router = useRouter()
 const route = useRoute()
+
+/*
+ * La bande est dans la coquille : elle se charge elle-meme, sinon une arrivee directe
+ * sur une page sans oeuvres (atelier, contact, serie) la laisserait vide. `charger` est
+ * idempotent : les vues qui l'appellent aussi reprennent la meme requete.
+ */
+onMounted(() => store.charger())
 
 /**
  * La bande est presente partout. Filtrer depuis une fiche oeuvre ou une serie doit
