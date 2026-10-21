@@ -107,10 +107,15 @@ export function useCapture() {
       rendue.height = pixels.height
 
       const rendu = creerRendu(rendue)
-      rendu.dessiner(toile, reglages)
-      rendu.detruire()
 
-      return versBlob(rendue, qualite)
+      // Le JPEG est lu avant de rendre le contexte : un contexte perdu laisse un canvas vide.
+      try {
+        rendu.dessiner(toile, reglages)
+
+        return await versBlob(rendue, qualite)
+      } finally {
+        rendu.detruire()
+      }
     }
 
     return versBlob(toile, qualite)

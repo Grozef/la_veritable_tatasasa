@@ -123,10 +123,16 @@ export function creerRendu(canvas: HTMLCanvasElement): Rendu {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
 
+    /**
+     * Rend le contexte au navigateur, pas seulement ses ressources : sans `loseContext`, il vit jusqu'au
+     * ramasse-miettes, et passe une quinzaine de contextes Chrome retire le plus ancien, apercu compris.
+     * Apres cet appel le canvas est vide : on lit son image AVANT de detruire.
+     */
     detruire() {
       gl.deleteTexture(texture)
       gl.deleteBuffer(tampon)
       gl.deleteProgram(programme)
+      gl.getExtension('WEBGL_lose_context')?.loseContext()
     },
   }
 }

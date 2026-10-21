@@ -1,5 +1,168 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+/*
+ * Palette de l'atelier, reprise de la demo validee « Le vol des Glops » (designs/vol/src/vol.css) :
+ * encre de Payne #161a23, papier #ece6da, outremer #8ea6f0, gris de Payne #9ba6b3, carte #202632,
+ * filet #333b4a. Pas de Dynamic Color : l'app garde les couleurs de l'artiste.
+ *
+ * Thème clair : fond papier, texte encre. L'outremer #8ea6f0 ne tient que 2,0:1 sur le papier, l'action
+ * passe donc a un outremer profond #34489a (6,65:1) ; le gris de Payne secondaire fonce de meme (4,60:1).
+ * Thème sombre : fond encre, texte papier, action outremer (7,35:1), secondaire gris de Payne (7,05:1).
+ * Rampes « step » : melange lineaire fond -> texte (et inverse) par pas de 5 %, comme celles d'Ionic.
+ * `--ion-text-color-step-400` porte le texte secondaire (ion-label p, ion-note en md) : il prend le gris
+ * de Payne a la place du gris neutre du melange (4,23:1 en clair, sous le seuil AA).
+ */
+:root {
+  --ion-background-color: #ece6da;
+  --ion-background-color-rgb: 236, 230, 218;
+  --ion-text-color: #161a23;
+  --ion-text-color-rgb: 22, 26, 35;
+  --ion-color-primary: #34489a;
+  --ion-color-primary-rgb: 52, 72, 154;
+  --ion-color-primary-contrast: #ece6da;
+  --ion-color-primary-contrast-rgb: 236, 230, 218;
+  --ion-color-primary-shade: #2e3f88;
+  --ion-color-primary-tint: #485aa4;
+  --ion-color-danger: #b3261e;
+  --ion-color-danger-rgb: 179, 38, 30;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #9e211a;
+  --ion-color-danger-tint: #bb3c35;
+  --ion-color-warning: #7a5200;
+  --ion-color-warning-rgb: 122, 82, 0;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #6b4800;
+  --ion-color-warning-tint: #87631a;
+  --ion-color-medium: #6b7380;
+  --ion-color-medium-rgb: 107, 115, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e6571;
+  --ion-color-medium-tint: #7a818d;
+  --ion-background-color-step-50: #e1dcd1;
+  --ion-background-color-step-100: #d7d2c8;
+  --ion-background-color-step-150: #ccc7bf;
+  --ion-background-color-step-200: #c1bdb5;
+  --ion-background-color-step-250: #b7b3ac;
+  --ion-background-color-step-300: #aca9a3;
+  --ion-background-color-step-350: #a19f9a;
+  --ion-background-color-step-400: #969491;
+  --ion-background-color-step-450: #8c8a88;
+  --ion-background-color-step-500: #81807f;
+  --ion-background-color-step-550: #767675;
+  --ion-background-color-step-600: #6c6c6c;
+  --ion-background-color-step-650: #616163;
+  --ion-background-color-step-700: #56575a;
+  --ion-background-color-step-750: #4c4d51;
+  --ion-background-color-step-800: #414348;
+  --ion-background-color-step-850: #36393e;
+  --ion-background-color-step-900: #2b2e35;
+  --ion-background-color-step-950: #21242c;
+  --ion-text-color-step-50: #21242c;
+  --ion-text-color-step-100: #2b2e35;
+  --ion-text-color-step-150: #36393e;
+  --ion-text-color-step-200: #414348;
+  --ion-text-color-step-250: #4c4d51;
+  --ion-text-color-step-300: #56575a;
+  --ion-text-color-step-350: #616163;
+  --ion-text-color-step-400: #5f6772;
+  --ion-text-color-step-450: #767675;
+  --ion-text-color-step-500: #81807f;
+  --ion-text-color-step-550: #8c8a88;
+  --ion-text-color-step-600: #969491;
+  --ion-text-color-step-650: #a19f9a;
+  --ion-text-color-step-700: #aca9a3;
+  --ion-text-color-step-750: #b7b3ac;
+  --ion-text-color-step-800: #c1bdb5;
+  --ion-text-color-step-850: #ccc7bf;
+  --ion-text-color-step-900: #d7d2c8;
+  --ion-text-color-step-950: #e1dcd1;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* `:root.md` et `:root.ios` : dark.system.css y pose le fond #121212 et les surfaces grises d'Ionic. */
+  :root,
+  :root.md,
+  :root.ios {
+    --ion-background-color: #161a23;
+    --ion-background-color-rgb: 22, 26, 35;
+    --ion-text-color: #ece6da;
+    --ion-text-color-rgb: 236, 230, 218;
+    --ion-item-background: #161a23;
+    --ion-toolbar-background: #202632;
+    --ion-toolbar-border-color: #333b4a;
+    --ion-card-background: #202632;
+    --ion-tab-bar-background: #202632;
+    --ion-border-color: #333b4a;
+    --ion-color-primary: #8ea6f0;
+    --ion-color-primary-rgb: 142, 166, 240;
+    --ion-color-primary-contrast: #161a23;
+    --ion-color-primary-contrast-rgb: 22, 26, 35;
+    --ion-color-primary-shade: #7d92d3;
+    --ion-color-primary-tint: #99aff2;
+    --ion-color-danger: #ffb4ab;
+    --ion-color-danger-rgb: 255, 180, 171;
+    --ion-color-danger-contrast: #690005;
+    --ion-color-danger-contrast-rgb: 105, 0, 5;
+    --ion-color-danger-shade: #e09e96;
+    --ion-color-danger-tint: #ffbcb3;
+    --ion-color-warning: #f0c46a;
+    --ion-color-warning-rgb: 240, 196, 106;
+    --ion-color-warning-contrast: #161a23;
+    --ion-color-warning-contrast-rgb: 22, 26, 35;
+    --ion-color-warning-shade: #d3ac5d;
+    --ion-color-warning-tint: #f2ca79;
+    --ion-color-medium: #9ba6b3;
+    --ion-color-medium-rgb: 155, 166, 179;
+    --ion-color-medium-contrast: #161a23;
+    --ion-color-medium-contrast-rgb: 22, 26, 35;
+    --ion-color-medium-shade: #88929e;
+    --ion-color-medium-tint: #a5afbb;
+    --ion-background-color-step-50: #21242c;
+    --ion-background-color-step-100: #2b2e35;
+    --ion-background-color-step-150: #36393e;
+    --ion-background-color-step-200: #414348;
+    --ion-background-color-step-250: #4c4d51;
+    --ion-background-color-step-300: #56575a;
+    --ion-background-color-step-350: #616163;
+    --ion-background-color-step-400: #6c6c6c;
+    --ion-background-color-step-450: #767675;
+    --ion-background-color-step-500: #81807f;
+    --ion-background-color-step-550: #8c8a88;
+    --ion-background-color-step-600: #969491;
+    --ion-background-color-step-650: #a19f9a;
+    --ion-background-color-step-700: #aca9a3;
+    --ion-background-color-step-750: #b7b3ac;
+    --ion-background-color-step-800: #c1bdb5;
+    --ion-background-color-step-850: #ccc7bf;
+    --ion-background-color-step-900: #d7d2c8;
+    --ion-background-color-step-950: #e1dcd1;
+    --ion-text-color-step-50: #e1dcd1;
+    --ion-text-color-step-100: #d7d2c8;
+    --ion-text-color-step-150: #ccc7bf;
+    --ion-text-color-step-200: #c1bdb5;
+    --ion-text-color-step-250: #b7b3ac;
+    --ion-text-color-step-300: #aca9a3;
+    --ion-text-color-step-350: #a19f9a;
+    --ion-text-color-step-400: #9ba6b3;
+    --ion-text-color-step-450: #8c8a88;
+    --ion-text-color-step-500: #81807f;
+    --ion-text-color-step-550: #767675;
+    --ion-text-color-step-600: #6c6c6c;
+    --ion-text-color-step-650: #616163;
+    --ion-text-color-step-700: #56575a;
+    --ion-text-color-step-750: #4c4d51;
+    --ion-text-color-step-800: #414348;
+    --ion-text-color-step-850: #36393e;
+    --ion-text-color-step-900: #2b2e35;
+    --ion-text-color-step-950: #21242c;
+  }
+}
+
+/* Segment inactif : Ionic md pose le texte a 60 % d'opacite (4,23:1 sur le papier). Texte secondaire plein. */
+ion-segment-button {
+  --color: var(--ion-text-color-step-400);
+}
 
 /*
  * Android : 48dp de zone de toucher pour tout bouton. Ionic md n'en donne que 36 (32 dans

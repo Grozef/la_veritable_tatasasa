@@ -5,6 +5,7 @@ import {
   IonButton,
   IonButtons,
   IonContent,
+  IonFooter,
   IonHeader,
   IonItem,
   IonLabel,
@@ -19,6 +20,7 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
+  toastController,
 } from '@ionic/vue'
 import type { SocialNetwork, Work } from '@/api/types'
 import { libelle, libellesReseau } from '@/composables/libelles'
@@ -37,7 +39,6 @@ const format = ref<FormatPartage>('portrait')
 const reseau = ref<SocialNetwork>('instagram')
 const legende = ref('')
 const travail = ref(false)
-const message = ref<string | null>(null)
 const erreur = ref<string | null>(null)
 
 let image: ImageBitmap | null = null
@@ -91,6 +92,21 @@ function peindre(): void {
   )
 }
 
+/**
+ * Retour d'etat en toast, pose au-dessus du pied ou sont les boutons : en note sous ceux-ci,
+ * il tombait hors de l'ecran, sous la liste des partages.
+ */
+async function annoncer(texte: string, duree = 3000): Promise<void> {
+  // Un seul message a la fois : deux toasts au meme ancrage se recouvriraient.
+  await toastController.dismiss().catch(() => undefined)
+  const toast = await toastController.create({
+    message: texte,
+    duration: duree,
+    positionAnchor: 'pied-partage',
+  })
+  await toast.present()
+}
+
 function versBlob(): Promise<Blob> {
   return new Promise((resoudre, rejeter) => {
     toile.value?.toBlob(
@@ -114,7 +130,6 @@ async function partager(): Promise<void> {
   }
 
   travail.value = true
-  message.value = null
   erreur.value = null
 
   try {
@@ -127,8 +142,11 @@ async function partager(): Promise<void> {
     }
 
     if (resultat === 'indisponible') {
-      message.value =
-        "La feuille de partage n'est pas disponible ici. Le visuel reste affiché : enregistre-le, puis note le partage."
+      // Une consigne en deux phrases : le temps de la lire.
+      await annoncer(
+        "La feuille de partage n'est pas disponible ici. Le visuel reste affiché : enregistre-le, puis note le partage.",
+        8000,
+      )
 
       return
     }
@@ -137,7 +155,7 @@ async function partager(): Promise<void> {
     await ecoulerFile()
     await rafraichir().catch(() => undefined)
 
-    message.value = 'Partage tracé.'
+    await annoncer('Partage tracé.')
   } catch (cause) {
     erreur.value = (cause as Error).message
   } finally {
@@ -153,7 +171,7 @@ async function tracerSeulement(): Promise<void> {
     await enfilerTrace(props.ulid, reseau.value, legende.value.trim() || null)
     await ecoulerFile()
     await rafraichir().catch(() => undefined)
-    message.value = 'Partage tracé.'
+    await annoncer('Partage tracé.')
   } finally {
     travail.value = false
   }
@@ -210,17 +228,6 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
           fait foi dans l'historique.
         </ion-note>
 
-        <ion-button expand="block" :disabled="travail" @click="partager">
-          <ion-spinner v-if="travail" name="dots" />
-          <span v-else>Ouvrir la feuille de partage</span>
-        </ion-button>
-
-        <ion-button expand="block" fill="outline" :disabled="travail" @click="tracerSeulement">
-          Noter un partage déjà fait
-        </ion-button>
-
-        <ion-note v-if="message" class="note">{{ message }}</ion-note>
-
         <ion-list v-if="partages.length">
           <ion-item v-for="(partage, index) in partages" :key="index">
             <ion-label>
@@ -233,6 +240,20 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
         <ion-note v-else class="note">Jamais partagée.</ion-note>
       </template>
     </ion-content>
+
+    <!-- Les deux actions restent a portee de pouce, quelle que soit la hauteur du visuel. -->
+    <ion-footer v-if="oeuvre" id="pied-partage">
+      <ion-toolbar class="actions">
+        <ion-button expand="block" :disabled="travail" @click="partager">
+          <ion-spinner v-if="travail" name="dots" />
+          <span v-else>Ouvrir la feuille de partage</span>
+        </ion-button>
+
+        <ion-button expand="block" fill="outline" :disabled="travail" @click="tracerSeulement">
+          Noter un partage déjà fait
+        </ion-button>
+      </ion-toolbar>
+    </ion-footer>
   </ion-page>
 </template>
 
@@ -248,5 +269,17 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
 .note {
   display: block;
   margin: 1rem 0;
+}
+
+.actions {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+/* 8 dp au moins entre les deux cibles (Material) : Ionic n'en laisse que 4. */
+.actions ion-button + ion-button {
+  margin-top: 8px;
 }
 </style>

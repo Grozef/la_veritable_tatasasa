@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonBadge,
@@ -15,12 +15,14 @@ import {
   IonPage,
   IonRefresher,
   IonRefresherContent,
+  IonThumbnail,
   IonTitle,
   IonToolbar,
   toastController,
 } from '@ionic/vue'
 import type { Work } from '@/api/types'
 import { libelle, libellesStatut } from '@/composables/libelles'
+import { vignette } from '@/composables/vignette'
 import { annulerRetrait, confirmerRetrait, estDeCote, mettreDeCote, reprendre } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
 import { useCapture } from '@/stores/capture'
@@ -40,13 +42,23 @@ const {
 const { oublier } = useCapture()
 
 const ecoulement = ref(false)
+const vignettes = computed(() => oeuvres.value.map(vignette))
 
 /*
  * `onIonViewWillEnter` ne se declenche pas dans tous les cas en Ionic Vue 8 (piege note
  * dans les regles du projet). Un `onMounted` plus un rafraichissement explicite au
  * retour du flux de capture couvrent les cas qui comptent ici.
  */
+// Le reseau qui revient est le seul evenement qui doit relancer la file toute seule.
+// Pose au montage, retire au demontage : Sortir puis se reconnecter remonte la page, et un
+// ecouteur pose a chaque montage relancerait la file autant de fois.
+const surRetourReseau = () => void tenterEnvoi()
+
+onUnmounted(() => window.removeEventListener('online', surRetourReseau))
+
 onMounted(async () => {
+  window.addEventListener('online', surRetourReseau)
+
   await relireFile()
 
   // Un jeton en stock ne prouve pas qu'il est encore valide : il a pu etre revoque
@@ -59,9 +71,6 @@ onMounted(async () => {
 
   await tenterEnvoi()
 })
-
-// Le reseau qui revient est le seul evenement qui doit relancer la file toute seule.
-window.addEventListener('online', () => void tenterEnvoi())
 
 async function tenterEnvoi(): Promise<void> {
   if (envois.value.length === 0) {
@@ -192,7 +201,7 @@ function partageable(oeuvre: Work): boolean {
             </p>
           </ion-label>
 
-          <ion-buttons slot="end">
+          <ion-buttons slot="end" class="actions">
             <ion-button v-if="envoi.erreur" @click="reprendre(envoi.id).then(relireFile)">
               Réessayer
             </ion-button>
@@ -206,10 +215,28 @@ function partageable(oeuvre: Work): boolean {
       <ion-list>
         <ion-list-header>
           <ion-label>Œuvres</ion-label>
-          <ion-badge>{{ oeuvres.length }}</ion-badge>
+          <ion-badge class="compteur">{{ oeuvres.length }}</ion-badge>
         </ion-list-header>
 
         <ion-item v-for="(oeuvre, index) in oeuvres" :key="oeuvre.ulid">
+          <!-- Decorative : le titre suit, une alternative le ferait lire deux fois. -->
+          <ion-thumbnail
+            slot="start"
+            class="vignette"
+            :style="vignettes[index].fond ? { '--fond': vignettes[index].fond } : undefined"
+          >
+            <img
+              v-if="vignettes[index].src"
+              :src="vignettes[index].src!"
+              :srcset="vignettes[index].srcset!"
+              sizes="56px"
+              width="56"
+              height="56"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </ion-thumbnail>
           <ion-label>
             <h3>{{ oeuvre.title }}</h3>
             <p>{{ oeuvre.year }} — {{ libelle(libellesStatut, oeuvre.status) }}</p>
@@ -244,8 +271,23 @@ function partageable(oeuvre: Work): boolean {
   color: var(--ion-color-danger);
 }
 
+/* Couleur de texte secondaire du theme (ion-label p), sans opacite : 4,6:1 en clair, 7,05:1 en sombre. */
 .pigments {
   font-size: 0.8rem;
-  opacity: 0.75;
+}
+
+/* 8 dp au moins entre deux cibles voisines (Material) : Ionic n'en laisse que 4. */
+.actions {
+  gap: 8px;
+}
+
+/* Le compteur s'aligne sur la marge droite des lignes au lieu de toucher le bord. */
+.compteur {
+  margin-inline-end: 16px;
+}
+
+.vignette {
+  --border-radius: 4px;
+  background: var(--fond, var(--ion-background-color-step-100));
 }
 </style>
