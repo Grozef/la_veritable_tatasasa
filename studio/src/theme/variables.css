@@ -172,3 +172,15 @@ ion-segment-button {
 ion-app ion-button.button {
   min-height: 48px;
 }
+
+/*
+ * iOS : ion-note lit step-650 et les paragraphes d'ion-label step-600 (2,1:1 sur le papier).
+ * Meme gris de Payne que le texte secondaire md (step-400 : 4,60:1 en clair, 7,05:1 en sombre).
+ */
+.ios ion-note {
+  --color: var(--ion-text-color-step-400);
+}
+
+.ios ion-label p {
+  color: var(--ion-text-color-step-400);
+}
