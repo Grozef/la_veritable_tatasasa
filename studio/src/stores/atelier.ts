@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import type { Work } from '@/api/types'
 import { api, ErreurApi } from '@/services/api'
 import { filePartages, viderPartages, type Trace } from '@/services/filePartages'
-import { file, vider, type Envoi } from '@/services/queue'
+import { estDeCote, file, vider, type Envoi } from '@/services/queue'
 import { jeton } from '@/services/session'
 
 /**
@@ -68,7 +68,8 @@ export function useAtelier() {
   }
 
   async function relireFile(): Promise<void> {
-    envois.value = await file()
+    // Un envoi mis de cote (retrait annulable en cours) n'est plus a l'ecran.
+    envois.value = (await file()).filter((envoi) => !estDeCote(envoi.id))
     traces.value = await filePartages()
   }
 

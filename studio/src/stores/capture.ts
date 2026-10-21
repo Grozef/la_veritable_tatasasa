@@ -24,7 +24,7 @@ export interface Metadonnees {
 
 const brute = ref<Blob | null>(null)
 // Pixels en shallowRef : remplaces d'un bloc, jamais modifies sur place. Un ref profond ferait passer
-// chaque lecture de pixel par le proxy Vue et figerait le redressement (35 s mesures pour 3000x2250).
+// chaque lecture de pixel par le proxy Vue et figerait le redressement (27 s mesurees sur un banc Node pour 3000x2250, 0,26 s en shallowRef).
 const source = shallowRef<Pixels | null>(null)
 const coins = ref<Point[]>([])
 const redressee = shallowRef<Pixels | null>(null)

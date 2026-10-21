@@ -17,7 +17,7 @@ import { enfiler } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
 import { useCapture } from '@/stores/capture'
 
-const emit = defineEmits<{ termine: [] }>()
+const emit = defineEmits<{ termine: []; enFile: []; occupe: [boolean] }>()
 
 const { brute, metadonnees, exporter } = useCapture()
 const { oeuvres, ecoulerFile, rafraichir } = useAtelier()
@@ -36,6 +36,12 @@ const statuts = ['atelier', 'exposee', 'vendue', 'privee']
  * repenser.
  */
 async function publier(): Promise<void> {
+  // Verrou avant tout `await` : un second toucher arrive avant que le bouton desactive
+  // soit repeint, et chaque passage ici ENFILE une oeuvre.
+  if (travail.value || enFile.value) {
+    return
+  }
+
   if (!brute.value) {
     erreur.value = 'Aucune photo'
 
@@ -44,6 +50,9 @@ async function publier(): Promise<void> {
 
   travail.value = true
   erreur.value = null
+  // Le flux bloque Retour pendant ce temps : demonter cette etape en plein envoi
+  // emporterait le verrou, et un second passage enfilerait l'oeuvre deux fois.
+  emit('occupe', true)
 
   try {
     const corrigee = await exporter()
@@ -71,12 +80,14 @@ async function publier(): Promise<void> {
     )
 
     enFile.value = true
+    emit('enFile')
     await ecoulerFile()
     retrouver()
   } catch (cause) {
     erreur.value = (cause as Error).message
   } finally {
     travail.value = false
+    emit('occupe', false)
   }
 }
 
@@ -103,7 +114,7 @@ function retrouver(): void {
 
 <template>
   <div class="etape">
-    <ion-list v-if="!publiee">
+    <ion-list v-if="!publiee && !enFile">
       <ion-item>
         <ion-input v-model="metadonnees.title" label="Titre" label-placement="stacked" required />
       </ion-item>
@@ -168,14 +179,24 @@ function retrouver(): void {
     <ion-note v-if="erreur" color="danger" class="note">{{ erreur }}</ion-note>
 
     <template v-if="!publiee">
-      <ion-button expand="block" :disabled="travail || !metadonnees.title.trim()" @click="publier">
+      <!-- Une fois en file, plus de bouton Publier : l'envoi partira de lui-meme, un
+           second toucher enfilerait un doublon. -->
+      <template v-if="enFile && !travail">
+        <ion-note class="note">
+          En file d'attente : l'envoi repartira tout seul au retour du reseau.
+        </ion-note>
+        <ion-button expand="block" @click="emit('termine')">Retour au carnet</ion-button>
+      </template>
+
+      <ion-button
+        v-else
+        expand="block"
+        :disabled="travail || enFile || !metadonnees.title.trim()"
+        @click="publier"
+      >
         <ion-spinner v-if="travail" name="dots" />
         <span v-else>Publier</span>
       </ion-button>
-
-      <ion-note v-if="enFile" class="note">
-        En file d'attente : l'envoi repartira tout seul au retour du reseau.
-      </ion-note>
     </template>
 
     <div v-else class="nuancier">

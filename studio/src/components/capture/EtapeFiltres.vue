@@ -71,7 +71,10 @@ function neutraliser(): void {
         <ion-label position="stacked">
           {{ curseur.nom }} — {{ reglages[curseur.cle].toFixed(2) }}
         </ion-label>
+        <!-- L'ion-label voisin ne nomme pas le curseur : sans aria-label, le lecteur
+             d'ecran annonce un curseur anonyme. -->
         <ion-range
+          :aria-label="curseur.nom"
           :min="curseur.min"
           :max="curseur.max"
           :step="curseur.pas"

@@ -12,14 +12,24 @@ const { brute, poserPhoto } = useCapture()
 const travail = ref(false)
 const erreur = ref<string | null>(null)
 const entree = ref<HTMLInputElement | null>(null)
+/** Galerie du greffon en echec : le selecteur de fichiers est propose, jamais ouvert d'office. */
+const galerieEchouee = ref<string | null>(null)
 
-async function photographier(): Promise<void> {
+/**
+ * Message de rejet de `@capacitor/camera` 8 quand l'artiste ferme l'appareil ou la
+ * galerie sans rien choisir (LegacyCameraFlow.java `USER_CANCELLED`, et web.js sur
+ * l'evenement `cancel` du selecteur). Ce n'est pas une panne : on ne dit rien.
+ */
+const ANNULATION = 'User cancelled photos app'
+
+async function prendre(source: CameraSource): Promise<void> {
   erreur.value = null
+  galerieEchouee.value = null
 
   try {
     const photo = await Camera.getPhoto({
       resultType: CameraResultType.Uri,
-      source: CameraSource.Camera,
+      source,
       quality: 92,
       // Pas de recadrage par l'appareil : le redressement se fait a l'ecran suivant, sur
       // les quatre coins de la feuille, et un rognage prealable jetterait ces coins.
@@ -32,13 +42,23 @@ async function photographier(): Promise<void> {
 
     await charger(await (await fetch(photo.webPath)).blob())
   } catch (cause) {
-    /*
-     * Le greffon camera n'a pas d'implementation web sans `@ionic/pwa-elements`, absent
-     * du projet : dans un navigateur cet appel echoue toujours. Le selecteur de fichier
-     * n'est donc pas un confort, c'est le seul chemin praticable hors appareil.
-     */
-    erreur.value = (cause as Error).message
-    entree.value?.click()
+    const message = (cause as Error).message
+
+    if (message === ANNULATION) {
+      return
+    }
+
+    if (source === CameraSource.Photos) {
+      // Ouvrir le selecteur ici, sans geste de l'artiste, serait une surprise (et le
+      // navigateur peut le bloquer) : on dit ce qui s'est passe et on propose le fichier.
+      galerieEchouee.value = message
+
+      return
+    }
+
+    // Appareil sans camera, ou camera refusee : l'artiste passe par une photo existante,
+    // que le message lui indique.
+    erreur.value = message
   }
 }
 
@@ -72,12 +92,17 @@ async function charger(blob: Blob): Promise<void> {
       coins de la feuille doivent etre dans l'image.
     </p>
 
-    <ion-button expand="block" :disabled="travail" @click="photographier">
+    <ion-button expand="block" :disabled="travail" @click="prendre(CameraSource.Camera)">
       <ion-spinner v-if="travail" name="dots" />
       <span v-else>Photographier</span>
     </ion-button>
 
-    <ion-button expand="block" fill="outline" :disabled="travail" @click="entree?.click()">
+    <ion-button
+      expand="block"
+      fill="outline"
+      :disabled="travail"
+      @click="prendre(CameraSource.Photos)"
+    >
       Choisir une photo existante
     </ion-button>
 
@@ -86,15 +111,30 @@ async function charger(blob: Blob): Promise<void> {
       class="fichier"
       type="file"
       accept="image/*"
-      capture="environment"
       @change="depuisFichier"
     />
+
+    <template v-if="galerieEchouee">
+      <ion-note color="warning" class="note">
+        La galerie n'a pas pu s'ouvrir ({{ galerieEchouee }}).
+      </ion-note>
+      <ion-button expand="block" fill="clear" :disabled="travail" @click="entree?.click()">
+        Choisir un fichier à la place
+      </ion-button>
+    </template>
 
     <ion-note v-if="erreur" color="warning" class="note">
       Appareil indisponible ({{ erreur }}) — passe par une photo existante.
     </ion-note>
 
-    <ion-note v-if="brute" class="note">Photo chargee.</ion-note>
+    <!-- Revenir ici par Retour ne doit pas obliger a rephotographier : coins et reglages
+         du brouillon restent en place tant qu'une nouvelle photo ne les remplace pas. -->
+    <template v-if="brute">
+      <ion-note class="note">Photo chargee.</ion-note>
+      <ion-button expand="block" fill="clear" :disabled="travail" @click="emit('suivant')">
+        Continuer avec cette photo
+      </ion-button>
+    </template>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { IonButton, IonNote, IonSpinner } from '@ionic/vue'
 import { redresser, type Point } from '@/composables/useHomographie'
 import { versToile } from '@/composables/useToile'
@@ -38,6 +38,9 @@ onMounted(() => {
   mesurer()
   window.addEventListener('resize', mesurer)
 })
+
+// Retour par etape remonte ce composant a chaque aller-retour : un ecouteur par montage.
+onUnmounted(() => window.removeEventListener('resize', mesurer))
 
 function mesurer(): void {
   largeurAffichee.value = cadre.value?.clientWidth ?? 1

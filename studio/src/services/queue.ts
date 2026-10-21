@@ -86,9 +86,13 @@ export async function vider(): Promise<{ envoyes: number; restants: number }> {
 
   try {
     for (const envoi of await file()) {
-      if (envoi.erreur !== null) {
+      // Relu a chaque tour : un retrait peut etre demande pendant le vidage.
+      if (envoi.erreur !== null || enRetrait.has(envoi.id)) {
         continue
       }
+
+      // Envoi en cours de televersement : il ne peut plus etre mis de cote (voir mettreDeCote).
+      courant = envoi.id
 
       try {
         await traiter(envoi)
@@ -100,6 +104,8 @@ export async function vider(): Promise<{ envoyes: number; restants: number }> {
         }
 
         await marquer(envoi.id, cause instanceof Error ? cause.message : 'Envoi refuse')
+      } finally {
+        courant = null
       }
     }
   } finally {
@@ -155,6 +161,57 @@ export async function retirer(id: string): Promise<void> {
   }
 
   await ecrireFile(envois.filter((envoi) => envoi.id !== id))
+}
+
+/**
+ * Retrait annulable : l'envoi est mis de cote le temps que l'artiste puisse se raviser.
+ *
+ * En MEMOIRE, pas dans la file persistee : si l'app se ferme avant la confirmation,
+ * l'envoi reapparait au lieu d'etre perdu. Pendant ce delai, `vider()` le saute.
+ */
+const enRetrait = new Set<string>()
+/** Envoi que `vider()` est en train de televerser. */
+let courant: string | null = null
+
+/**
+ * Faux si l'envoi est deja en train de partir : le retirer maintenant laisserait une
+ * oeuvre cote serveur, ou supprimerait ses images en plein televersement.
+ */
+export function mettreDeCote(id: string): boolean {
+  if (courant === id) {
+    return false
+  }
+
+  enRetrait.add(id)
+
+  return true
+}
+
+export function annulerRetrait(id: string): void {
+  enRetrait.delete(id)
+}
+
+export function estDeCote(id: string): boolean {
+  return enRetrait.has(id)
+}
+
+/** Suppression reelle, seulement si le retrait n'a pas ete annule entre-temps. */
+export async function confirmerRetrait(id: string): Promise<void> {
+  if (!enRetrait.has(id)) {
+    return
+  }
+
+  // `retirer` relit puis reecrit toute la file : pendant un vidage, il repartirait d'un
+  // instantane perime et effacerait l'ulid qu'un autre envoi vient d'ecrire (doublon au
+  // vidage suivant). On attend donc la fin du vidage.
+  while (enCours) {
+    await new Promise((fin) => setTimeout(fin, 50))
+  }
+
+  // Supprimer AVANT de lever la mise de cote : un vidage ne doit jamais voir l'envoi
+  // redevenir eligible entre les deux.
+  await retirer(id)
+  enRetrait.delete(id)
 }
 
 /** Remet en file un envoi refuse, une fois la cause corrigee. */

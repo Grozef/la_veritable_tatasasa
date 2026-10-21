@@ -17,9 +17,10 @@ import {
   IonRefresherContent,
   IonTitle,
   IonToolbar,
+  toastController,
 } from '@ionic/vue'
 import type { Work } from '@/api/types'
-import { reprendre, retirer } from '@/services/queue'
+import { annulerRetrait, confirmerRetrait, estDeCote, mettreDeCote, reprendre } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
 import { useCapture } from '@/stores/capture'
 
@@ -92,6 +93,51 @@ async function nouvelle(): Promise<void> {
   await router.push('/capture')
 }
 
+/**
+ * Retirer un envoi detruit ses photos : le geste se rattrape pendant que le bandeau est
+ * affiche. La suppression reelle n'a lieu qu'a sa disparition sans « Annuler ».
+ */
+async function retirerAnnulable(id: string): Promise<void> {
+  // Deux touchers rapides : un seul bandeau, sinon le second confirmerait malgre l'Annuler du premier.
+  if (estDeCote(id)) {
+    return
+  }
+
+  if (!mettreDeCote(id)) {
+    const parti = await toastController.create({
+      message: 'Cet envoi est en train de partir : il ne peut plus être retiré.',
+      duration: 4000,
+    })
+    await parti.present()
+
+    return
+  }
+
+  await relireFile()
+
+  const bandeau = await toastController.create({
+    message: 'Envoi retiré',
+    duration: 5000,
+    buttons: [{ text: 'Annuler', role: 'cancel' }],
+  })
+
+  bandeau.onDidDismiss().then(async ({ role }) => {
+    if (role === 'cancel') {
+      annulerRetrait(id)
+      await relireFile()
+      // L'envoi rendu attendait peut-etre le reseau, qui est la : on le relance.
+      await tenterEnvoi()
+
+      return
+    }
+
+    await confirmerRetrait(id)
+    await relireFile()
+  })
+
+  await bandeau.present()
+}
+
 async function sortir(): Promise<void> {
   await deconnexion()
   await router.replace('/connexion')
@@ -149,7 +195,7 @@ function partageable(oeuvre: Work): boolean {
             <ion-button v-if="envoi.erreur" @click="reprendre(envoi.id).then(relireFile)">
               Reessayer
             </ion-button>
-            <ion-button color="danger" @click="retirer(envoi.id).then(relireFile)">
+            <ion-button color="danger" @click="retirerAnnulable(envoi.id)">
               Retirer
             </ion-button>
           </ion-buttons>
