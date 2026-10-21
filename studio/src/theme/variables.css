@@ -184,3 +184,27 @@ ion-app ion-button.button {
 .ios ion-label p {
   color: var(--ion-text-color-step-400);
 }
+
+/* Curseurs : 48dp de zone de toucher (Ionic md : 42 de haut, poignee de 36) sans grossir le bouton dessine. */
+ion-range {
+  --height: 48px;
+  --knob-handle-size: 48px;
+}
+
+/* Action d'un bandeau (« Annuler ») : 48dp de haut, Ionic md n'en donne que 36. */
+ion-toast::part(button) {
+  min-height: 48px;
+}
+
+/* Texte lu par le lecteur d'ecran, cache a l'oeil (libelle d'un bouton occupe, aide au clavier). */
+.visuellement-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

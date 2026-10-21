@@ -29,3 +29,17 @@ export const libellesReseau: Record<SocialNetwork, string> = {
 export function libelle<T extends string>(table: Record<T, string>, valeur: string): string {
   return (table as Record<string, string>)[valeur] ?? valeur
 }
+
+const deuxDecimales = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Valeur d'un reglage a l'ecran : virgule decimale francaise (« 0,25 »), jamais le point de `toFixed`. */
+export function valeurReglage(valeur: number): string {
+  return deuxDecimales.format(valeur)
+}
+
+const regles = new Intl.PluralRules('fr-FR')
+
+/** Accord en nombre a la francaise : singulier pour 0 et 1, pluriel a partir de 2. */
+export function accorder(nombre: number, singulier: string, pluriel: string): string {
+  return regles.select(nombre) === 'one' ? singulier : pluriel
+}

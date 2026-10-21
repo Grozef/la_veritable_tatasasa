@@ -18,5 +18,7 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+ : splash systeme (icone de lancement) sur le papier, ou l'encre en mode nuit. -->
+        <item name="windowSplashScreenBackground">@color/fond_lancement</item>
     </style>
 </resources>

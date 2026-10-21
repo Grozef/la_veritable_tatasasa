@@ -8,7 +8,7 @@
  * jusqu'a le faire passer pour un gris.
  */
 
-import type { Pixels } from './useHomographie'
+import type { Pixels, Point } from './useHomographie'
 
 export interface Rvb {
   r: number
@@ -76,6 +76,76 @@ export function mesurerPastille(image: Pixels, x: number, y: number, rayon = 4):
   }
 
   return { r: r / n, g: g / n, b: b / n }
+}
+
+/**
+ * Seuils d'une pastille candidate a la reserve.
+ *
+ * Saturation `(max - min) / max` : un papier nu jauni par une lampe d'atelier reste sous
+ * 0,25 ; un lavis jaune ou rouge franc depasse 0,6. Le plus clair seul ne suffit pas : un
+ * jaune sature (250, 240, 50) est plus lumineux qu'une reserve grisee (220, 205, 170), et
+ * le prendre pour du blanc pousserait le bleu au gain maximal.
+ *
+ * Elle se mesure pixel par pixel puis se moyenne : la moyenne d'une pastille a cheval sur
+ * un jaune et un bleu francs donne un gris clair, qui passerait pour du papier.
+ *
+ * Clarte (luminance Rec. 709, 0-255) : en dessous, ce n'est pas du papier mais une ombre
+ * ou un lavis, et le gain eclaircirait toute la photo.
+ */
+const SATURATION_MAX = 0.35
+const CLARTE_MIN = 140
+
+/**
+ * Zone de reserve trouvee sans viser : parmi les pastilles d'une grille (moyennes, pas des
+ * pixels) assez claires ET peu saturees, la plus claire. C'est l'alternative a la pipette
+ * pour qui ne peut pas toucher un point precis de l'image.
+ *
+ * `null` quand aucune pastille ne qualifie : mieux vaut ne rien corriger que ramener un
+ * lavis au blanc.
+ *
+ * Le bord (5 %) est ecarte : apres redressement il peut garder un liseré de table ou d'ombre.
+ */
+export function chercherPapier(image: Pixels, cases = 24): Point | null {
+  const marge = 0.05
+  let meilleur: Point | null = null
+  let clarteMax = -1
+
+  for (let ligne = 0; ligne <= cases; ligne++) {
+    for (let colonne = 0; colonne <= cases; colonne++) {
+      const x = Math.round(image.width * (marge + ((1 - 2 * marge) * colonne) / cases))
+      const y = Math.round(image.height * (marge + ((1 - 2 * marge) * ligne) / cases))
+      const pastille = mesurerPastille(image, x, y)
+      const clarte = 0.2126 * pastille.r + 0.7152 * pastille.g + 0.0722 * pastille.b
+
+      if (clarte >= CLARTE_MIN && clarte > clarteMax && saturationMoyenne(image, x, y) <= SATURATION_MAX) {
+        clarteMax = clarte
+        meilleur = { x, y }
+      }
+    }
+  }
+
+  return meilleur
+}
+
+/** Moyenne des saturations `(max - min) / max` des pixels du carre de `rayon` autour du point. */
+function saturationMoyenne(image: Pixels, x: number, y: number, rayon = 4): number {
+  let somme = 0
+  let n = 0
+
+  for (let py = Math.max(0, y - rayon); py <= Math.min(image.height - 1, y + rayon); py++) {
+    for (let px = Math.max(0, x - rayon); px <= Math.min(image.width - 1, x + rayon); px++) {
+      const position = (py * image.width + px) * 4
+      const r = image.data[position]
+      const g = image.data[position + 1]
+      const b = image.data[position + 2]
+      const haut = Math.max(r, g, b)
+
+      somme += haut > 0 ? (haut - Math.min(r, g, b)) / haut : 0
+      n++
+    }
+  }
+
+  return n > 0 ? somme / n : 1
 }
 
 /** Applique les gains en place. Les canaux sont bornes par `Uint8ClampedArray`. */

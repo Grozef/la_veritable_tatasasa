@@ -29,10 +29,19 @@ const tailleApercu = computed(() =>
     : {},
 )
 
+/** Coins dans l'ordre du redressement : haut gauche, haut droit, bas droit, bas gauche. */
+const NOMS = ['en haut à gauche', 'en haut à droite', 'en bas à droite', 'en bas à gauche']
+
+const pourcent = (valeur: number, total: number) => Math.round((valeur / total) * 100)
+
+/** Le nom dit aussi ou est le coin : c'est le seul retour d'un deplacement au clavier. */
 const poignees = computed(() =>
-  coins.value.map((coin) => ({
+  coins.value.map((coin, index) => ({
     x: coin.x * echelle.value,
     y: coin.y * echelle.value,
+    nom: source.value
+      ? `Coin ${NOMS[index]}, ${pourcent(coin.x, source.value.width)} % depuis la gauche, ${pourcent(coin.y, source.value.height)} % depuis le haut`
+      : `Coin ${NOMS[index]}`,
   })),
 )
 
@@ -61,9 +70,26 @@ const observateur = new ResizeObserver(([entree]) => {
 onUnmounted(() => observateur.disconnect())
 
 let tire: number | null = null
+/** Point de depart du doigt : un toucher tremble de quelques pixels, ce n'est pas un glisser. */
+let depart: { x: number; y: number } | null = null
+let glisse = false
+
+/**
+ * Alternative au glisser : toucher une poignee la choisit, toucher ensuite la photo y pose
+ * le coin. Le double-tap de TalkBack et Entree au clavier passent par le meme clic.
+ */
+const choisi = ref<number | null>(null)
+
+/**
+ * Un appui est en cours dans le cadre : toucher la photo retire le focus de la poignee
+ * choisie (la photo n'est pas focalisable), et ce depart-la ne doit pas lacher le choix.
+ */
+let appuiDansCadre = false
 
 function saisir(index: number, evenement: PointerEvent): void {
   tire = index
+  depart = { x: evenement.clientX, y: evenement.clientY }
+  glisse = false
 
   /*
    * La capture du pointeur est un CONFORT — elle evite de perdre la poignee quand le
@@ -77,25 +103,123 @@ function saisir(index: number, evenement: PointerEvent): void {
   }
 }
 
-function deplacer(evenement: PointerEvent): void {
-  if (tire === null || !source.value || !cadre.value) {
-    return
+/** Point de la photo sous le doigt, borne a ses limites. */
+function versPhoto(evenement: MouseEvent): Point | null {
+  if (!source.value || !cadre.value) {
+    return null
   }
 
   const boite = cadre.value.getBoundingClientRect()
 
   // Borne aux limites de la photo : une poignee tiree hors cadre ferait echantillonner
   // du vide et border la sortie de gris.
-  const point: Point = {
+  return {
     x: borner((evenement.clientX - boite.left) / echelle.value, source.value.width),
     y: borner((evenement.clientY - boite.top) / echelle.value, source.value.height),
   }
+}
 
-  coins.value = coins.value.map((coin, index) => (index === tire ? point : coin))
+function placer(cible: number, point: Point): void {
+  coins.value = coins.value.map((coin, index) => (index === cible ? point : coin))
+}
+
+function deplacer(evenement: PointerEvent): void {
+  if (tire === null) {
+    return
+  }
+
+  // Sans capture, un lacher hors du cadre n'arrive pas ici : le prochain survol le rattrape.
+  if (evenement.buttons === 0) {
+    lacher()
+
+    return
+  }
+
+  if (!glisse && depart && Math.hypot(evenement.clientX - depart.x, evenement.clientY - depart.y) < 6) {
+    return
+  }
+
+  const point = versPhoto(evenement)
+
+  if (point) {
+    // Glisser une autre poignee que celle choisie abandonne le choix.
+    if (!glisse && choisi.value !== tire) {
+      choisi.value = null
+    }
+
+    glisse = true
+    placer(tire, point)
+  }
 }
 
 function lacher(): void {
   tire = null
+  depart = null
+  // Le clic qui suit le lacher d'un glisser ne doit ni choisir une poignee ni poser le coin
+  // choisi : sans capture, il part sur le cadre. Il passe d'abord.
+  setTimeout(() => {
+    glisse = false
+    appuiDansCadre = false
+  })
+}
+
+/** Le focus quitte la poignee choisie pour autre chose que la photo : le choix tombe. */
+function quitter(index: number): void {
+  if (choisi.value === index && !appuiDansCadre) {
+    choisi.value = null
+  }
+}
+
+function basculer(index: number): void {
+  if (glisse) {
+    return
+  }
+
+  choisi.value = choisi.value === index ? null : index
+}
+
+/** Toucher sur la photo, poignee choisie : le coin vient la. */
+function poser(evenement: MouseEvent): void {
+  if (glisse || choisi.value === null || (evenement.target as HTMLElement).classList.contains('poignee')) {
+    return
+  }
+
+  const point = versPhoto(evenement)
+
+  if (point) {
+    placer(choisi.value, point)
+    choisi.value = null
+  }
+}
+
+const FLECHES: Record<string, Point> = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+}
+
+/** Clavier : fleches pour deplacer le coin (0,5 % de la photo, 5 % avec Maj), Echap pour lacher le choix. */
+function clavier(index: number, evenement: KeyboardEvent): void {
+  if (evenement.key === 'Escape') {
+    choisi.value = null
+
+    return
+  }
+
+  const sens = FLECHES[evenement.key]
+
+  if (!sens || !source.value) {
+    return
+  }
+
+  evenement.preventDefault()
+
+  const { width, height } = source.value
+  const pas = Math.max(width, height) * (evenement.shiftKey ? 0.05 : 0.005)
+  const coin = coins.value[index]
+
+  placer(index, { x: borner(coin.x + sens.x * pas, width), y: borner(coin.y + sens.y * pas, height) })
 }
 
 function borner(valeur: number, maximum: number): number {
@@ -128,17 +252,22 @@ async function valider(): Promise<void> {
 <template>
   <div class="etape">
     <p class="consigne">
-      Tire les quatre poignées sur les coins de la feuille. Une aquarelle photographiée au
-      téléphone n'est jamais de face.
+      Tire les quatre poignées sur les coins de la feuille, ou touche une poignée puis le coin
+      de la feuille. Une aquarelle photographiée au téléphone n'est jamais de face.
+    </p>
+    <p id="aide-poignees" class="visuellement-cache">
+      Flèches pour déplacer le coin, Maj pour aller plus vite.
     </p>
 
     <div ref="zone" class="zone">
       <div
         ref="cadre"
         class="cadre"
+        @pointerdown="appuiDansCadre = true"
         @pointermove="deplacer"
         @pointerup="lacher"
         @pointercancel="lacher"
+        @click="poser"
       >
         <canvas ref="toile" class="apercu" :style="tailleApercu" />
 
@@ -154,17 +283,33 @@ async function valider(): Promise<void> {
           class="poignee"
           type="button"
           :style="{ left: `${poignee.x}px`, top: `${poignee.y}px` }"
-          :aria-label="`Coin ${index + 1}`"
+          :aria-label="poignee.nom"
+          :aria-pressed="choisi === index"
+          aria-describedby="aide-poignees"
           @pointerdown="saisir(index, $event)"
+          @click="basculer(index)"
+          @keydown="clavier(index, $event)"
+          @blur="quitter(index)"
         />
       </div>
     </div>
 
-    <ion-note v-if="erreur" color="danger" class="note">{{ erreur }}</ion-note>
+    <ion-note v-if="erreur" color="danger" class="note" role="alert">{{ erreur }}</ion-note>
 
-    <ion-button class="action" expand="block" :disabled="travail" @click="valider">
-      <ion-spinner v-if="travail" name="dots" />
-      <span v-else>Redresser</span>
+    <!-- Le libelle reste dans le bouton pendant le calcul, cache a l'oeil : sans lui, le
+         lecteur d'ecran annoncerait un bouton sans nom. -->
+    <!-- `aria-busy` pose apres coup sur ion-button reste sur l'hote : Ionic 8 ne le
+         recopie sur le bouton natif qu'au premier rendu. La region annonce l'attente. -->
+    <p class="visuellement-cache" role="status">{{ travail ? 'Redressement en cours…' : '' }}</p>
+
+    <ion-button
+      class="action"
+      expand="block"
+      :disabled="travail"
+      @click="valider"
+    >
+      <ion-spinner v-if="travail" name="dots" aria-hidden="true" />
+      <span :class="{ 'visuellement-cache': travail }">Redresser</span>
     </ion-button>
   </div>
 </template>
@@ -248,6 +393,16 @@ async function valider(): Promise<void> {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
   padding: 0;
+}
+
+/* Poignee choisie : remplie, en attente du toucher qui posera le coin. */
+.poignee[aria-pressed='true'] {
+  background: rgba(var(--ion-color-primary-rgb), 0.55);
+}
+
+.poignee:focus-visible {
+  outline: 3px solid var(--ion-color-primary);
+  outline-offset: 2px;
 }
 
 .note {

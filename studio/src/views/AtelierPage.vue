@@ -21,7 +21,7 @@ import {
   toastController,
 } from '@ionic/vue'
 import type { Work } from '@/api/types'
-import { libelle, libellesStatut } from '@/composables/libelles'
+import { accorder, libelle, libellesStatut } from '@/composables/libelles'
 import { vignette } from '@/composables/vignette'
 import { annulerRetrait, confirmerRetrait, estDeCote, mettreDeCote, reprendre } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
@@ -157,6 +157,13 @@ function pigments(index: number): string {
   return oeuvres.value[index].pigments.map((pigment) => pigment.name).join(', ')
 }
 
+/** « 1 image envoyée sur 2 » : l'accord suit le nombre d'images deja parties. */
+function avancement(fichiers: { envoye: boolean }[]): string {
+  const envoyes = fichiers.filter((fichier) => fichier.envoye).length
+
+  return `${envoyes} ${accorder(envoyes, 'image envoyée', 'images envoyées')} sur ${fichiers.length}`
+}
+
 function partageable(oeuvre: Work): boolean {
   return oeuvre.media.some((media) => media.role === 'principal')
 }
@@ -195,10 +202,7 @@ function partageable(oeuvre: Work): boolean {
           <ion-label>
             <h3>{{ envoi.oeuvre.title }}</h3>
             <p v-if="envoi.erreur" class="refus">{{ envoi.erreur }}</p>
-            <p v-else>
-              {{ envoi.fichiers.filter((fichier) => fichier.envoye).length }} /
-              {{ envoi.fichiers.length }} image(s) envoyée(s)
-            </p>
+            <p v-else>{{ avancement(envoi.fichiers) }}</p>
           </ion-label>
 
           <ion-buttons slot="end" class="actions">

@@ -2,7 +2,15 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
 
-import { IonicVue } from '@ionic/vue';
+import {
+  createAnimation,
+  getIonPageElement,
+  iosTransitionAnimation,
+  IonicVue,
+  mdTransitionAnimation,
+  type Animation,
+  type TransitionOptions,
+} from '@ionic/vue';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -34,8 +42,46 @@ import '@ionic/vue/css/palettes/dark.system.css';
 /* Theme variables */
 import './theme/variables.css';
 
+/*
+ * Mouvement reduit (Android : « Supprimer les animations ») : la page suivante arrive en fondu
+ * de 150 ms au lieu de glisser sur 280. Le reglage est relu a chaque navigation, il peut
+ * changer pendant que l'app tourne ; sans lui, la transition de la plateforme reste.
+ */
+const mouvementReduit = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function fondu({ enteringEl, leavingEl }: TransitionOptions): Animation {
+  const animation = createAnimation()
+    .duration(150)
+    .easing('linear')
+    .addAnimation(
+      createAnimation()
+        .addElement(getIonPageElement(enteringEl))
+        .fill('both')
+        .beforeRemoveClass('ion-page-invisible')
+        .fromTo('opacity', '0', '1'),
+    );
+
+  if (leavingEl) {
+    animation.addAnimation(
+      createAnimation().addElement(getIonPageElement(leavingEl)).fromTo('opacity', '1', '0'),
+    );
+  }
+
+  return animation;
+}
+
+function navigation(base: HTMLElement, options: TransitionOptions): Animation {
+  if (mouvementReduit.matches) {
+    return fondu(options);
+  }
+
+  return options.mode === 'ios'
+    ? iosTransitionAnimation(base, options)
+    : mdTransitionAnimation(base, options);
+}
+
 const app = createApp(App)
-  .use(IonicVue)
+  .use(IonicVue, { navAnimation: navigation })
   .use(router);
 
 router.isReady().then(() => {

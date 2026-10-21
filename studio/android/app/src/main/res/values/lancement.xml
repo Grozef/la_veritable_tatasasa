@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fond du splash systeme (Android 12+) : papier le jour, encre de Payne la nuit (values-night). -->
+    <color name="fond_lancement">#ECE6DA</color>
+</resources>

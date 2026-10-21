@@ -181,11 +181,17 @@ function retrouver(): void {
       </ion-item>
 
       <ion-item>
-        <ion-checkbox v-model="metadonnees.publier">Visible sur le portfolio</ion-checkbox>
+        <ion-checkbox v-model="metadonnees.publier" class="visible">Visible sur le portfolio</ion-checkbox>
       </ion-item>
     </ion-list>
 
-    <ion-note v-if="erreur" color="danger" class="note">{{ erreur }}</ion-note>
+    <ion-note v-if="erreur" color="danger" class="note" role="alert">{{ erreur }}</ion-note>
+
+    <!-- `aria-busy` pose apres coup sur ion-button reste sur l'hote : Ionic 8 ne le
+         recopie sur le bouton natif qu'au premier rendu. La region annonce l'attente. -->
+    <p class="visuellement-cache" role="status">
+      {{ travail ? (publiee ? 'Relecture du nuancier en cours…' : 'Publication en cours…') : '' }}
+    </p>
 
     <template v-if="!publiee">
       <!-- Une fois en file, plus de bouton Publier : l'envoi partira de lui-meme, un
@@ -203,8 +209,8 @@ function retrouver(): void {
         :disabled="travail || enFile || !metadonnees.title.trim()"
         @click="publier"
       >
-        <ion-spinner v-if="travail" name="dots" />
-        <span v-else>Publier</span>
+        <ion-spinner v-if="travail" name="dots" aria-hidden="true" />
+        <span :class="{ 'visuellement-cache': travail }">Publier</span>
       </ion-button>
     </template>
 
@@ -247,6 +253,11 @@ function retrouver(): void {
 .note {
   display: block;
   margin: 1rem 0;
+}
+
+/* 48dp de zone de toucher : la case et son libelle n'en font que 47 dans un ion-item md. */
+.visible {
+  min-height: 48px;
 }
 
 .nuancier ul {

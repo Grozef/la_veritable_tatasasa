@@ -92,9 +92,17 @@ async function charger(blob: Blob): Promise<void> {
       coins de la feuille doivent être dans l'image.
     </p>
 
-    <ion-button expand="block" :disabled="travail" @click="prendre(CameraSource.Camera)">
-      <ion-spinner v-if="travail" name="dots" />
-      <span v-else>Photographier</span>
+    <!-- `aria-busy` pose apres coup sur ion-button reste sur l'hote : Ionic 8 ne le
+         recopie sur le bouton natif qu'au premier rendu. La region annonce l'attente. -->
+    <p class="visuellement-cache" role="status">{{ travail ? 'Ouverture de la photo en cours…' : '' }}</p>
+
+    <ion-button
+      expand="block"
+      :disabled="travail"
+      @click="prendre(CameraSource.Camera)"
+    >
+      <ion-spinner v-if="travail" name="dots" aria-hidden="true" />
+      <span :class="{ 'visuellement-cache': travail }">Photographier</span>
     </ion-button>
 
     <ion-button
@@ -115,7 +123,7 @@ async function charger(blob: Blob): Promise<void> {
     />
 
     <template v-if="galerieEchouee">
-      <ion-note color="warning" class="note">
+      <ion-note color="warning" class="note" role="alert">
         La galerie n'a pas pu s'ouvrir ({{ galerieEchouee }}).
       </ion-note>
       <ion-button expand="block" fill="clear" :disabled="travail" @click="entree?.click()">
@@ -123,7 +131,7 @@ async function charger(blob: Blob): Promise<void> {
       </ion-button>
     </template>
 
-    <ion-note v-if="erreur" color="warning" class="note">
+    <ion-note v-if="erreur" color="warning" class="note" role="alert">
       Appareil indisponible ({{ erreur }}) — passe par une photo existante.
     </ion-note>
 

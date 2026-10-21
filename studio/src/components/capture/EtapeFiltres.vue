@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { IonButton, IonItem, IonLabel, IonList, IonNote, IonRange } from '@ionic/vue'
+import { valeurReglage } from '@/composables/libelles'
 import { reduire, versToile } from '@/composables/useToile'
 import { creerRendu, REGLAGES_NEUTRES, type Rendu } from '@/services/filtres'
 import { useCapture } from '@/stores/capture'
@@ -62,14 +63,14 @@ function neutraliser(): void {
   <div class="etape">
     <canvas v-show="!erreur" ref="toile" class="apercu" />
 
-    <ion-note v-if="erreur" color="warning" class="note">
+    <ion-note v-if="erreur" color="warning" class="note erreur">
       Aperçu impossible ({{ erreur }}) — l'image partira sans filtre.
     </ion-note>
 
-    <ion-list>
+    <ion-list class="reglages">
       <ion-item v-for="curseur in curseurs" :key="curseur.cle">
         <ion-label position="stacked">
-          {{ curseur.nom }} — {{ reglages[curseur.cle].toFixed(2) }}
+          {{ curseur.nom }} — {{ valeurReglage(reglages[curseur.cle]) }}
         </ion-label>
         <!-- L'ion-label voisin ne nomme pas le curseur : sans aria-label, le lecteur
              d'ecran annonce un curseur anonyme. -->
@@ -85,13 +86,15 @@ function neutraliser(): void {
       </ion-item>
     </ion-list>
 
-    <ion-note class="note">
+    <ion-note class="note info">
       Les réglages sont rangés à côté de l'image : la photo brute part intacte et reste
       corrigeable.
     </ion-note>
 
-    <ion-button expand="block" fill="outline" @click="neutraliser">Tout remettre à plat</ion-button>
-    <ion-button expand="block" @click="emit('suivant')">Continuer</ion-button>
+    <div class="actions">
+      <ion-button expand="block" fill="outline" @click="neutraliser">Tout remettre à plat</ion-button>
+      <ion-button expand="block" @click="emit('suivant')">Continuer</ion-button>
+    </div>
   </div>
 </template>
 
@@ -109,5 +112,65 @@ function neutraliser(): void {
 .note {
   display: block;
   margin: 1rem 0;
+}
+
+/*
+ * En paysage, l'image reste sous les yeux pendant le reglage : apercu a gauche, borne a la
+ * hauteur de l'ecran, curseurs a droite, actions cote a cote sous eux.
+ */
+@media (orientation: landscape) {
+  .etape {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'apercu reglages'
+      'info actions';
+    column-gap: 1rem;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 0.5rem calc(1rem + var(--ion-safe-area-right, 0px)) calc(0.5rem + var(--ion-safe-area-bottom, 0px))
+      calc(1rem + var(--ion-safe-area-left, 0px));
+  }
+
+  .apercu {
+    grid-area: apercu;
+    place-self: center;
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .erreur {
+    grid-area: apercu;
+    align-self: start;
+  }
+
+  .reglages {
+    grid-area: reglages;
+    align-self: start;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    padding-block: 0;
+  }
+
+  .info {
+    grid-area: info;
+    align-self: center;
+    margin: 0;
+  }
+
+  .actions {
+    grid-area: actions;
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Largeur au libelle : « Tout remettre a plat » tient sur une ligne, Continuer prend le reste. */
+  .actions ion-button {
+    flex: auto;
+    margin: 0;
+  }
 }
 </style>

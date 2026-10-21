@@ -84,11 +84,19 @@ async function valider(): Promise<void> {
           </ion-item>
         </ion-list>
 
-        <ion-note v-if="erreur" color="danger" class="erreur">{{ erreur }}</ion-note>
+        <ion-note v-if="erreur" color="danger" class="erreur" role="alert">{{ erreur }}</ion-note>
 
-        <ion-button type="submit" expand="block" :disabled="envoi">
-          <ion-spinner v-if="envoi" name="dots" />
-          <span v-else>Entrer dans l'atelier</span>
+        <!-- `aria-busy` pose apres coup sur ion-button reste sur l'hote : Ionic 8 ne le
+             recopie sur le bouton natif qu'au premier rendu. La region annonce l'attente. -->
+        <p class="visuellement-cache" role="status">{{ envoi ? 'Connexion en cours…' : '' }}</p>
+
+        <ion-button
+          type="submit"
+          expand="block"
+          :disabled="envoi"
+        >
+          <ion-spinner v-if="envoi" name="dots" aria-hidden="true" />
+          <span :class="{ 'visuellement-cache': envoi }">Entrer dans l'atelier</span>
         </ion-button>
       </form>
     </ion-content>

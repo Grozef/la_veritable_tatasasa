@@ -192,66 +192,84 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
     </ion-header>
 
     <ion-content class="ion-padding">
-      <ion-note v-if="erreur" color="danger" class="note">{{ erreur }}</ion-note>
+      <div class="mise-en-page">
+        <ion-note v-if="erreur" color="danger" class="note erreur" role="alert">{{ erreur }}</ion-note>
 
-      <template v-if="oeuvre">
-        <ion-segment :value="format" @ion-change="format = ($event as CustomEvent).detail.value">
-          <ion-segment-button value="portrait">4:5</ion-segment-button>
-          <ion-segment-button value="carre">Carré</ion-segment-button>
-        </ion-segment>
+        <template v-if="oeuvre">
+          <ion-segment
+            class="format"
+            :value="format"
+            @ion-change="format = ($event as CustomEvent).detail.value"
+          >
+            <ion-segment-button value="portrait">4:5</ion-segment-button>
+            <ion-segment-button value="carre">Carré</ion-segment-button>
+          </ion-segment>
 
-        <canvas ref="toile" class="visuel" />
+          <canvas ref="toile" class="visuel" />
 
-        <ion-list>
-          <ion-item>
-            <ion-textarea
-              v-model="legende"
-              label="Légende"
-              label-placement="stacked"
-              :rows="3"
-              :counter="true"
-              :maxlength="2200"
-            />
-          </ion-item>
+          <div class="formulaire">
+            <ion-list>
+              <ion-item>
+                <ion-textarea
+                  v-model="legende"
+                  label="Légende"
+                  label-placement="stacked"
+                  :rows="3"
+                  :counter="true"
+                  :maxlength="2200"
+                />
+              </ion-item>
 
-          <ion-item>
-            <ion-select v-model="reseau" label="Déposé sur" label-placement="stacked">
-              <ion-select-option v-for="candidat in reseaux" :key="candidat" :value="candidat">
-                {{ libelle(libellesReseau, candidat) }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-        </ion-list>
+              <ion-item>
+                <ion-select v-model="reseau" label="Déposé sur" label-placement="stacked">
+                  <ion-select-option v-for="candidat in reseaux" :key="candidat" :value="candidat">
+                    {{ libelle(libellesReseau, candidat) }}
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+            </ion-list>
 
-        <ion-note class="note">
-          La feuille de partage ne dit pas où tu as déposé l'image : c'est cette liste qui
-          fait foi dans l'historique.
-        </ion-note>
+            <ion-note class="note">
+              La feuille de partage ne dit pas où tu as déposé l'image : c'est cette liste qui
+              fait foi dans l'historique.
+            </ion-note>
 
-        <ion-list v-if="partages.length">
-          <ion-item v-for="(partage, index) in partages" :key="index">
-            <ion-label>
-              <h3>{{ libelle(libellesReseau, partage.network) }}</h3>
-              <p>{{ dateCourte(partage.postedAt) }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
+            <ion-list v-if="partages.length">
+              <ion-item v-for="(partage, index) in partages" :key="index">
+                <ion-label>
+                  <h3>{{ libelle(libellesReseau, partage.network) }}</h3>
+                  <p>{{ dateCourte(partage.postedAt) }}</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
 
-        <ion-note v-else class="note">Jamais partagée.</ion-note>
-      </template>
+            <ion-note v-else class="note">Jamais partagée.</ion-note>
+          </div>
+        </template>
+      </div>
     </ion-content>
 
     <!-- Les deux actions restent a portee de pouce, quelle que soit la hauteur du visuel. -->
     <ion-footer v-if="oeuvre" id="pied-partage">
       <ion-toolbar class="actions">
-        <ion-button expand="block" :disabled="travail" @click="partager">
-          <ion-spinner v-if="travail" name="dots" />
-          <span v-else>Ouvrir la feuille de partage</span>
-        </ion-button>
+        <div class="boutons">
+          <!-- `aria-busy` pose apres coup sur ion-button reste sur l'hote : Ionic 8 ne le
+               recopie sur le bouton natif qu'au premier rendu. La region annonce l'attente. -->
+          <p class="visuellement-cache" role="status">{{ travail ? 'Préparation du partage en cours…' : '' }}</p>
 
-        <ion-button expand="block" fill="outline" :disabled="travail" @click="tracerSeulement">
-          Noter un partage déjà fait
-        </ion-button>
+          <ion-button
+            expand="block"
+            :disabled="travail"
+            @click="partager"
+          >
+            <ion-spinner v-if="travail" name="dots" aria-hidden="true" />
+            <span :class="{ 'visuellement-cache': travail }">Ouvrir la feuille de partage</span>
+          </ion-button>
+
+          <ion-button expand="block" fill="outline" :disabled="travail" @click="tracerSeulement">
+            Noter un partage déjà fait
+          </ion-button>
+        </div>
       </ion-toolbar>
     </ion-footer>
   </ion-page>
@@ -281,5 +299,66 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
 /* 8 dp au moins entre les deux cibles (Material) : Ionic n'en laisse que 4. */
 .actions ion-button + ion-button {
   margin-top: 8px;
+}
+
+/*
+ * En paysage : le visuel a gauche, borne a la hauteur laissee par l'en-tete et le pied, le
+ * format et le formulaire a droite (seuls a defiler) ; les deux actions du pied cote a cote.
+ */
+@media (orientation: landscape) {
+  .mise-en-page {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'visuel erreur'
+      'visuel format'
+      'visuel formulaire';
+    column-gap: 1rem;
+    height: 100%;
+  }
+
+  .erreur {
+    grid-area: erreur;
+    margin-top: 0;
+  }
+
+  /* Chargement echoue : pas de visuel a gauche, la note prend toute la largeur. */
+  .erreur:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .format {
+    grid-area: format;
+  }
+
+  .visuel {
+    grid-area: visuel;
+    place-self: start center;
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+  }
+
+  .formulaire {
+    grid-area: formulaire;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .boutons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .boutons ion-button {
+    flex: 1;
+    margin: 0;
+  }
+
+  .actions ion-button + ion-button {
+    margin-top: 0;
+  }
 }
 </style>
