@@ -131,7 +131,7 @@ function filtrer(slug: string): void {
   <nav ref="bande" class="nuancier" :class="{ collante }" aria-label="Filtrer par pigment">
     <ul
       ref="liste"
-      :class="{ 'suite-gauche': suiteAGauche, 'suite-droite': suiteADroite }"
+      :class="{ 'suite-gauche': suiteAGauche, 'suite-droite': suiteADroite, attente: pigments.length === 0 }"
       @scroll.passive="mesurer"
       @focusin="focusDansLaListe"
     >
@@ -206,6 +206,14 @@ ul.suite-droite {
   --fondu-d: 2rem;
 }
 
+/*
+ * Les pigments arrivent avec les oeuvres : sans place reservee, la bande grandit a leur
+ * arrivee et pousse toute la page (decalage de mise en page). Une rangee de 44 px ici.
+ */
+ul.attente {
+  min-height: 44px;
+}
+
 li {
   flex-shrink: 0;
 }
@@ -223,6 +231,11 @@ li {
     flex-wrap: wrap;
     overflow-x: visible;
     mask-image: none;
+  }
+
+  /* Deux rangees : la hauteur mesuree de la bande a 1440 px (113 px, marges comprises). */
+  ul.attente {
+    min-height: 88px;
   }
 }
 

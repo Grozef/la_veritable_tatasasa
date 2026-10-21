@@ -82,4 +82,16 @@ describe('contrat GET /api/works', () => {
       }
     }
   })
+
+  it('donne une derivee HD en URL simple, jamais plus large que l\'original', () => {
+    for (const media of works.flatMap((work) => work.media)) {
+      expect(media.hd === null).toBe(media.sources === null)
+
+      if (media.hd !== null) {
+        expect(media.hd.width).toBeLessThanOrEqual(media.width)
+        expect(media.hd.avif).toMatch(new RegExp(`-${media.hd.width}\\.avif$`))
+        expect(media.hd.webp).toMatch(new RegExp(`-${media.hd.width}\\.webp$`))
+      }
+    }
+  })
 })

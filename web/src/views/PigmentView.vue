@@ -73,7 +73,9 @@ header {
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 0.25rem 1rem;
-  padding: var(--marge) var(--marge) 0;
+  /* Le meme ecart que sous l'en-tete d'une serie (marge de sa note) : sans lui, a 390 px
+     le titre touchait la grille de plus pres que les cartes ne se touchent entre elles. */
+  padding: var(--marge) var(--marge) 1rem;
 }
 
 h1 {

@@ -4,6 +4,28 @@ import type { Work } from '@/api/types'
 
 defineProps<{ works: Work[] }>()
 
+/*
+ * Largeur reelle d'une colonne, deduite de la grille ci-dessous (marge et gouttiere en
+ * clamp sur 4vw, colonnes de 18rem minimum) : 1 colonne sous 41rem, 2 jusqu'a 65rem,
+ * 3 jusqu'a 90rem, 4 jusqu'a 112rem, 5 au-dela. A 1440 px une colonne fait 289 px, et non
+ * les 432 px qu'annoncait `30vw`.
+ */
+const TAILLES = [
+  '(min-width: 112rem) calc(20vw - 70px)',
+  '(min-width: 90rem) calc(23vw - 42px)',
+  '(min-width: 65rem) 28vw',
+  '(min-width: 41rem) 44vw',
+  '(min-width: 25rem) 92vw',
+  'calc(100vw - 2rem)',
+].join(', ')
+
+/**
+ * Une rangee a la largeur courante d'un ecran de bureau : visibles a l'arrivee. Sur ecran
+ * etroit la grille n'a qu'une colonne : une seule image est visible, les autres ne doivent
+ * pas lui disputer la bande passante.
+ */
+const PREMIERE_RANGEE = window.matchMedia('(min-width: 48rem)').matches ? 4 : 1
+
 /** Le media principal ; a defaut le premier disponible, pour ne jamais rendre un trou. */
 const principal = (work: Work) =>
   work.media.find((media) => media.role === 'principal') ?? work.media[0] ?? null
@@ -11,13 +33,14 @@ const principal = (work: Work) =>
 
 <template>
   <ul class="carnet">
-    <li v-for="work in works" :key="work.slug">
+    <li v-for="(work, rang) in works" :key="work.slug">
       <RouterLink :to="{ name: 'oeuvre', params: { slug: work.slug } }">
         <ImageOeuvre
           :media="principal(work)"
           :alt="`${work.title}, ${work.year}`"
-          sizes="(min-width: 60rem) 30vw, (min-width: 40rem) 45vw, 90vw"
+          :sizes="TAILLES"
           :transition-name="`oeuvre-${work.slug}`"
+          :prioritaire="rang < PREMIERE_RANGEE"
         />
 
         <span class="legende">
@@ -85,6 +108,8 @@ a {
   margin: 0.5rem 0 0;
   padding-left: 1.2rem;
   border-left: 2px solid var(--papier-ombre);
+  /* Comme la note de la fiche : pas de mot seul en derniere ligne (« lave. »). */
+  text-wrap: pretty;
   font-family: var(--manuscrite);
   font-size: 0.95rem;
   color: var(--encre-pale);

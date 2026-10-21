@@ -9,6 +9,8 @@ const props = defineProps<{
   sizes: string
   /** Renseigne uniquement sur l'image que la View Transition doit suivre d'une vue a l'autre. */
   transitionName?: string
+  /** Image visible des l'arrivee : chargee tout de suite et en priorite, jamais differee. */
+  prioritaire?: boolean
 }>()
 
 /**
@@ -42,7 +44,8 @@ const fond = computed(() => props.media?.lqipHex ?? 'var(--papier-ombre)')
         :alt="alt"
         :width="media.width"
         :height="media.height"
-        loading="lazy"
+        :loading="prioritaire ? 'eager' : 'lazy'"
+        :fetchpriority="prioritaire ? 'high' : undefined"
         decoding="async"
       />
     </template>

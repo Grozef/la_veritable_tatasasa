@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useWorksStore } from '@/stores/works'
 import { useTitre } from '@/composables/titre'
 
@@ -20,6 +20,26 @@ useTitre(
 const media = computed(
   () => work.value?.media.find((m) => m.role === 'principal') ?? work.value?.media[0] ?? null,
 )
+
+/*
+ * Derivee haute definition : demandee au premier agrandissement, jamais au chargement.
+ * Le srcset suffit a l'echelle 1 ; au-dela il etirerait au mieux 800 px. Une fois
+ * chargee elle reste en place (recadrer puis rezoomer ne la redemande pas). Retenue par
+ * URL, pour qu'une autre fiche reparte du srcset. Fichier absent (media derive avant la
+ * HD) : retour au srcset plutot qu'une image cassee.
+ */
+const hdPour = ref<string | null>(null)
+const hdEchouee = ref<string | null>(null)
+const hd = computed(() => {
+  const source = media.value?.hd
+  return source && hdPour.value === source.webp && hdEchouee.value !== source.webp ? source : null
+})
+
+function hdIndisponible(): void {
+  if (hd.value) {
+    hdEchouee.value = hd.value.webp
+  }
+}
 
 const grains: Record<string, string> = {
   torchon: 'grain torchon',
@@ -49,6 +69,12 @@ const transformation = computed(() => ({
 }))
 
 const borner = (valeur: number) => Math.min(6, Math.max(1, valeur))
+
+watch(echelle, (valeur) => {
+  if (valeur > 1 && media.value?.hd) {
+    hdPour.value = media.value.hd.webp
+  }
+})
 
 /** Virgule decimale a la francaise : « 2,5× » et non « 2.5x ». */
 const echelleLue = computed(() =>
@@ -212,14 +238,23 @@ function clavier(event: KeyboardEvent): void {
       @wheel="molette"
       @dblclick="recadrer"
     >
+      <!-- width/height : le navigateur reserve la place de l'image avant son arrivee.
+           Une fois zoomee, la HD remplace le srcset (URL seule, densite 1x). -->
       <picture v-if="media?.sources">
-        <source type="image/avif" :srcset="media.sources.avif" sizes="(min-width: 70rem) 65vw, 100vw" />
+        <source
+          type="image/avif"
+          :srcset="hd ? hd.avif : media.sources.avif"
+          :sizes="hd ? undefined : '(min-width: 70rem) 65vw, 100vw'"
+        />
         <img
-          :src="media.sources.webp.split(', ')[0]?.split(' ')[0]"
-          :srcset="media.sources.webp"
-          sizes="(min-width: 70rem) 65vw, 100vw"
+          :src="hd ? hd.webp : media.sources.webp.split(', ')[0]?.split(' ')[0]"
+          :srcset="hd ? hd.webp : media.sources.webp"
+          :sizes="hd ? undefined : '(min-width: 70rem) 65vw, 100vw'"
+          :width="media.width"
+          :height="media.height"
           :alt="`${work.title}, ${work.year}`"
           :style="[transformation, { viewTransitionName: `oeuvre-${work.slug}` }]"
+          @error="hdIndisponible"
         />
       </picture>
       <p v-else class="etat">Les dérivées de cette image ne sont pas encore prêtes.</p>
@@ -280,7 +315,7 @@ function clavier(event: KeyboardEvent): void {
     </div>
   </article>
 
-  <p v-else-if="store.chargement" class="etat">Ouverture de l'œuvre…</p>
+  <p v-else-if="store.chargement" class="etat ouverture">Ouverture de l'œuvre…</p>
 
   <div v-else-if="store.erreur" class="etat">
     <h1 class="lecteur-seul">Œuvre indisponible</h1>
@@ -395,6 +430,8 @@ dd {
 }
 
 .note {
+  /* Evite le mot seul en derniere ligne (« doigts. ») sous la main manuscrite. */
+  text-wrap: pretty;
   font-family: var(--manuscrite);
   color: var(--encre-pale);
   padding-left: 1.2rem;
@@ -438,6 +475,15 @@ dd {
 .etat {
   padding: var(--marge);
   color: var(--encre-pale);
+}
+
+/*
+ * Pendant l'ouverture, la place de la fiche est tenue jusqu'au bas de l'ecran : sinon le
+ * pied de page s'affiche juste sous ce message, puis l'arrivee de la fiche le chasse
+ * (decalage de mise en page mesure a 0,48 sur la fiche).
+ */
+.etat.ouverture {
+  min-height: 100svh;
 }
 
 .etat button {
