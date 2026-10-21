@@ -47,6 +47,17 @@ export interface Media {
     avif: string;
     webp: string;
   } | null;
+  /**
+   * Derivee haute definition, reservee au zoom de la fiche : URL simples (pas de
+   * `srcset`), a ne demander qu'une fois l'image agrandie. `width` = largeur de
+   * l'original plafonnee a 3000 px, jamais agrandie. `null` dans les memes cas que
+   * `sources`.
+   */
+  hd: {
+    width: number;
+    avif: string;
+    webp: string;
+  } | null;
 }
 
 export interface Series {

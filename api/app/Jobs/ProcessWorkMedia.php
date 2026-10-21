@@ -45,18 +45,15 @@ class ProcessWorkMedia implements ShouldQueue
     /**
      * Les largeurs superieures a l'original sont ignorees, comme dans
      * `Derivatives::srcset` : agrandir n'ajoute aucun detail et le `srcset` publie
-     * pointerait vers des fichiers absents.
+     * pointerait vers des fichiers absents. La derivee haute definition du zoom
+     * (`Derivatives::hdWidth`) s'y ajoute.
      */
     private function deriveTo(string $prefix): void
     {
         // `orient()` : sans redressement EXIF, une photo prise en portrait sort couchee.
         $source = Image::fromStorage($this->media->path_original, $this->media->disk)->orient();
 
-        foreach (Derivatives::WIDTHS as $width) {
-            if ($width > $this->media->width) {
-                continue;
-            }
-
+        foreach (Derivatives::widthsFor($this->media->width) as $width) {
             $scaled = $source->scale(width: $width);
 
             foreach (Derivatives::FORMATS as $format) {

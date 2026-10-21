@@ -31,6 +31,12 @@ class ProcessWorkMediaTest extends TestCase
             $disk->assertExists("works/sonde/aquarelle-{$width}.webp");
         }
 
+        // La derivee haute definition du zoom, a la largeur de l'original : sans elle le
+        // zoom de la fiche etirerait la derivee 800.
+        $disk->assertExists('works/sonde/aquarelle-900.avif');
+        $disk->assertExists('works/sonde/aquarelle-900.webp');
+        $this->assertSame(900, getimagesize($disk->path('works/sonde/aquarelle-900.webp'))[0]);
+
         // L'original fait 900 px de large : 1600 et 3000 n'ajouteraient aucun detail et
         // `Derivatives::srcset` ne les publie pas non plus.
         $disk->assertMissing('works/sonde/aquarelle-1600.avif');

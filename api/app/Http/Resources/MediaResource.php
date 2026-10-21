@@ -25,6 +25,9 @@ class MediaResource extends JsonResource
             'height' => $this->height,
             'lqipHex' => $this->lqip_hex,
             'sources' => $this->sources(),
+            // Ajout posterieur a `sources`, qui reste inchange : la haute definition n'entre
+            // pas dans le `srcset`, sinon un ecran dense la telechargerait des le chargement.
+            'hd' => $this->path_web === null ? null : Derivatives::hd($this->disk, $this->path_web, $this->width),
         ];
     }
 
