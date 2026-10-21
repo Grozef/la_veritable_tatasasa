@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue'
+import { reactive, ref, shallowRef } from 'vue'
 import { appliquerGains, BLANC_PAPIER, type Rvb } from '@/composables/useBalanceBlanc'
 import type { Pixels, Point } from '@/composables/useHomographie'
 import { creerRendu, REGLAGES_NEUTRES, reglagesNeutres, type Reglages } from '@/services/filtres'
@@ -23,9 +23,11 @@ export interface Metadonnees {
 }
 
 const brute = ref<Blob | null>(null)
-const source = ref<Pixels | null>(null)
+// Pixels en shallowRef : remplaces d'un bloc, jamais modifies sur place. Un ref profond ferait passer
+// chaque lecture de pixel par le proxy Vue et figerait le redressement (35 s mesures pour 3000x2250).
+const source = shallowRef<Pixels | null>(null)
 const coins = ref<Point[]>([])
-const redressee = ref<Pixels | null>(null)
+const redressee = shallowRef<Pixels | null>(null)
 const gains = ref<Rvb>({ r: 1, g: 1, b: 1 })
 const reglages = reactive<Reglages>({ ...REGLAGES_NEUTRES })
 
