@@ -47,14 +47,14 @@ async function appeler<T>(chemin: string, options: RequestInit = {}): Promise<T>
     reponse = await fetch(`${BASE}${chemin}`, { ...options, headers: entetes })
   } catch (cause) {
     // Panne reseau, pas reponse du serveur : c'est ce que la file d'attente doit retenir.
-    throw new ErreurApi(cause instanceof Error ? cause.message : 'Reseau indisponible', 0)
+    throw new ErreurApi(cause instanceof Error ? cause.message : 'Réseau indisponible', 0)
   }
 
   if (reponse.status === 401) {
     // Le jeton a ete revoque depuis un autre appareil : le garder ferait boucler l'app
     // sur des 401 sans jamais reproposer l'ecran de connexion.
     await oublierJeton()
-    throw new ErreurApi('Session expiree', 401)
+    throw new ErreurApi('Session expirée', 401)
   }
 
   if (!reponse.ok) {
@@ -155,11 +155,11 @@ export const api = {
     try {
       reponse = await fetch(`${BASE}/studio/works/${ulid}/apercu`, { headers: entetes })
     } catch (cause) {
-      throw new ErreurApi(cause instanceof Error ? cause.message : 'Reseau indisponible', 0)
+      throw new ErreurApi(cause instanceof Error ? cause.message : 'Réseau indisponible', 0)
     }
 
     if (!reponse.ok) {
-      throw new ErreurApi(`Apercu indisponible (${reponse.status})`, reponse.status)
+      throw new ErreurApi(`Aperçu indisponible (${reponse.status})`, reponse.status)
     }
 
     return reponse.blob()

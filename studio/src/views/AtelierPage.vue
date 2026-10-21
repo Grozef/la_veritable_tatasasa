@@ -20,6 +20,7 @@ import {
   toastController,
 } from '@ionic/vue'
 import type { Work } from '@/api/types'
+import { libelle, libellesStatut } from '@/composables/libelles'
 import { annulerRetrait, confirmerRetrait, estDeCote, mettreDeCote, reprendre } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
 import { useCapture } from '@/stores/capture'
@@ -171,7 +172,7 @@ function partageable(oeuvre: Work): boolean {
       <div class="ion-padding">
         <ion-button expand="block" @click="nouvelle">Photographier une aquarelle</ion-button>
         <ion-note v-if="erreur" color="warning" class="note">
-          {{ erreur }} — les envois partiront au retour du reseau.
+          {{ erreur }} — les envois partiront au retour du réseau.
         </ion-note>
       </div>
 
@@ -187,13 +188,13 @@ function partageable(oeuvre: Work): boolean {
             <p v-if="envoi.erreur" class="refus">{{ envoi.erreur }}</p>
             <p v-else>
               {{ envoi.fichiers.filter((fichier) => fichier.envoye).length }} /
-              {{ envoi.fichiers.length }} image(s) envoyee(s)
+              {{ envoi.fichiers.length }} image(s) envoyée(s)
             </p>
           </ion-label>
 
           <ion-buttons slot="end">
             <ion-button v-if="envoi.erreur" @click="reprendre(envoi.id).then(relireFile)">
-              Reessayer
+              Réessayer
             </ion-button>
             <ion-button color="danger" @click="retirerAnnulable(envoi.id)">
               Retirer
@@ -204,18 +205,18 @@ function partageable(oeuvre: Work): boolean {
 
       <ion-list>
         <ion-list-header>
-          <ion-label>Oeuvres</ion-label>
+          <ion-label>Œuvres</ion-label>
           <ion-badge>{{ oeuvres.length }}</ion-badge>
         </ion-list-header>
 
         <ion-item v-for="(oeuvre, index) in oeuvres" :key="oeuvre.ulid">
           <ion-label>
             <h3>{{ oeuvre.title }}</h3>
-            <p>{{ oeuvre.year }} — {{ oeuvre.status }}</p>
+            <p>{{ oeuvre.year }} — {{ libelle(libellesStatut, oeuvre.status) }}</p>
             <p v-if="oeuvre.pigments.length" class="pigments">{{ pigments(index) }}</p>
             <p v-else class="pigments">Nuancier en attente du traitement</p>
             <p v-if="oeuvre.socialPosts?.length" class="pigments">
-              Partagee {{ oeuvre.socialPosts.length }} fois
+              Partagée {{ oeuvre.socialPosts.length }} fois
             </p>
           </ion-label>
 
@@ -226,7 +227,7 @@ function partageable(oeuvre: Work): boolean {
         </ion-item>
 
         <ion-item v-if="!oeuvres.length && !chargement">
-          <ion-label>Aucune oeuvre pour l'instant.</ion-label>
+          <ion-label>Aucune œuvre pour l'instant.</ion-label>
         </ion-item>
       </ion-list>
     </ion-content>

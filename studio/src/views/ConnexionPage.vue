@@ -42,7 +42,7 @@ async function valider(): Promise<void> {
   } catch (cause) {
     erreur.value =
       cause instanceof ErreurApi && cause.horsLigne
-        ? "L'atelier est injoignable. Verifie le reseau."
+        ? "L'atelier est injoignable. Vérifie le réseau."
         : (cause as Error).message
   } finally {
     envoi.value = false

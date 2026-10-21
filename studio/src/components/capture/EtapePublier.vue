@@ -13,6 +13,7 @@ import {
   IonTextarea,
 } from '@ionic/vue'
 import type { Work } from '@/api/types'
+import { libelle, libellesGrain, libellesStatut } from '@/composables/libelles'
 import { enfiler } from '@/services/queue'
 import { useAtelier } from '@/stores/atelier'
 import { useCapture } from '@/stores/capture'
@@ -116,13 +117,21 @@ function retrouver(): void {
   <div class="etape">
     <ion-list v-if="!publiee && !enFile">
       <ion-item>
-        <ion-input v-model="metadonnees.title" label="Titre" label-placement="stacked" required />
+        <!-- La raison du Publier grisé, sur le champ qui la lève : `helper-text` est relié
+             au champ par aria-describedby (ion-input). -->
+        <ion-input
+          v-model="metadonnees.title"
+          label="Titre"
+          label-placement="stacked"
+          required
+          :helper-text="metadonnees.title.trim() ? undefined : 'Obligatoire pour publier.'"
+        />
       </ion-item>
 
       <ion-item>
         <ion-input
           v-model.number="metadonnees.year"
-          label="Annee"
+          label="Année"
           label-placement="stacked"
           type="number"
         />
@@ -149,7 +158,7 @@ function retrouver(): void {
       <ion-item>
         <ion-select v-model="metadonnees.paper_grain" label="Grain" label-placement="stacked">
           <ion-select-option v-for="grain in grains" :key="grain" :value="grain">
-            {{ grain }}
+            {{ libelle(libellesGrain, grain) }}
           </ion-select-option>
         </ion-select>
       </ion-item>
@@ -157,7 +166,7 @@ function retrouver(): void {
       <ion-item>
         <ion-select v-model="metadonnees.status" label="Statut" label-placement="stacked">
           <ion-select-option v-for="statut in statuts" :key="statut" :value="statut">
-            {{ statut }}
+            {{ libelle(libellesStatut, statut) }}
           </ion-select-option>
         </ion-select>
       </ion-item>
@@ -183,7 +192,7 @@ function retrouver(): void {
            second toucher enfilerait un doublon. -->
       <template v-if="enFile && !travail">
         <ion-note class="note">
-          En file d'attente : l'envoi repartira tout seul au retour du reseau.
+          En file d'attente : l'envoi repartira tout seul au retour du réseau.
         </ion-note>
         <ion-button expand="block" @click="emit('termine')">Retour au carnet</ion-button>
       </template>
@@ -212,13 +221,13 @@ function retrouver(): void {
           </li>
         </ul>
         <ion-note>
-          Un pigment mal reconnu se corrige depuis le carnet : c'est l'oeil qui tranche,
+          Un pigment mal reconnu se corrige depuis le carnet : c'est l'œil qui tranche,
           pas le calcul.
         </ion-note>
       </template>
 
       <ion-note v-else class="note">
-        Nuancier pas encore calcule — le traitement de l'image tourne en file cote serveur.
+        Nuancier pas encore calculé — le traitement de l'image tourne en file côté serveur.
       </ion-note>
 
       <ion-button expand="block" fill="outline" :disabled="travail" @click="relire">

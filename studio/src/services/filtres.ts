@@ -135,7 +135,7 @@ function compiler(gl: WebGLRenderingContext): WebGLProgram {
   const programme = gl.createProgram()
 
   if (!programme) {
-    throw new Error('Programme WebGL impossible a creer')
+    throw new Error('Programme WebGL impossible à créer')
   }
 
   for (const [type, source] of [
@@ -145,14 +145,14 @@ function compiler(gl: WebGLRenderingContext): WebGLProgram {
     const shader = gl.createShader(type)
 
     if (!shader) {
-      throw new Error('Shader impossible a creer')
+      throw new Error('Shader impossible à créer')
     }
 
     gl.shaderSource(shader, source)
     gl.compileShader(shader)
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(`Shader refuse : ${gl.getShaderInfoLog(shader)}`)
+      throw new Error(`Shader refusé : ${gl.getShaderInfoLog(shader)}`)
     }
 
     gl.attachShader(programme, shader)
@@ -161,7 +161,7 @@ function compiler(gl: WebGLRenderingContext): WebGLProgram {
   gl.linkProgram(programme)
 
   if (!gl.getProgramParameter(programme, gl.LINK_STATUS)) {
-    throw new Error(`Programme refuse : ${gl.getProgramInfoLog(programme)}`)
+    throw new Error(`Programme refusé : ${gl.getProgramInfoLog(programme)}`)
   }
 
   return programme

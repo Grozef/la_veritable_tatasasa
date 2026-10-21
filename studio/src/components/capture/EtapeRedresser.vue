@@ -128,8 +128,8 @@ async function valider(): Promise<void> {
 <template>
   <div class="etape">
     <p class="consigne">
-      Tire les quatre poignees sur les coins de la feuille. Une aquarelle photographiee au
-      telephone n'est jamais de face.
+      Tire les quatre poignées sur les coins de la feuille. Une aquarelle photographiée au
+      téléphone n'est jamais de face.
     </p>
 
     <div ref="zone" class="zone">

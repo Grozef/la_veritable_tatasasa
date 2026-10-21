@@ -68,7 +68,7 @@ export function useCapture() {
   /** Copie des pixels redresses, gains appliques. La base reste intacte. */
   function corrigee(): Pixels {
     if (!redressee.value) {
-      throw new Error('Aucune image redressee')
+      throw new Error('Aucune image redressée')
     }
 
     const copie: Pixels = {

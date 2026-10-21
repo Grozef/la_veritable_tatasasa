@@ -103,7 +103,7 @@ export async function vider(): Promise<{ envoyes: number; restants: number }> {
           break
         }
 
-        await marquer(envoi.id, cause instanceof Error ? cause.message : 'Envoi refuse')
+        await marquer(envoi.id, cause instanceof Error ? cause.message : 'Envoi refusé')
       } finally {
         courant = null
       }

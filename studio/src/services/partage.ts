@@ -10,7 +10,20 @@ import { blobVersBase64 } from './fichiers'
  * L'artiste choisit elle-meme la destination — c'est aussi pourquoi le reseau est
  * DECLARE ensuite et non devine.
  */
-export type ResultatPartage = 'partage' | 'indisponible'
+export type ResultatPartage = 'partage' | 'annule' | 'indisponible'
+
+/**
+ * Message de rejet de `@capacitor/share` 8 quand l'artiste ferme la feuille sans rien
+ * choisir (SharePlugin.java `RESULT_CANCELED`, SharePlugin.swift). Sur le web,
+ * `navigator.share` rejette une `AbortError`. Ce n'est pas une panne : on ne dit rien.
+ */
+const ANNULATION = 'Share canceled'
+
+export function estAnnulation(cause: unknown): boolean {
+  return (
+    cause instanceof Error && (cause.message === ANNULATION || cause.name === 'AbortError')
+  )
+}
 
 export async function partagerVisuel(
   visuel: Blob,
@@ -34,12 +47,15 @@ export async function partagerVisuel(
     await Share.share({ title: titre, text: texte, files: [uri] })
 
     return 'partage'
-  } catch {
+  } catch (cause) {
+    if (estAnnulation(cause)) {
+      return 'annule'
+    }
+
     /*
-     * Deux causes possibles, indiscernables ici : la plateforme ne sait pas partager de
-     * fichier (c'est le cas de tout navigateur de bureau), ou l'artiste a ferme la
-     * feuille. Dans les deux cas le visuel reste affiche a l'ecran et enregistrable a la
-     * main — on ne perd rien, on ne pretend rien.
+     * La plateforme ne sait pas partager de fichier (c'est le cas de tout navigateur de
+     * bureau). Le visuel reste affiche a l'ecran et enregistrable a la main — on ne perd
+     * rien, on ne pretend rien.
      */
     return 'indisponible'
   }

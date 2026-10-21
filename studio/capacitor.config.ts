@@ -7,7 +7,7 @@ const dev = process.env.CAP_DEV === '1';
 
 const config: CapacitorConfig = {
   appId: 'fr.laveritabletatasasa.atelier',
-  appName: 'studio',
+  appName: 'Atelier Tatasasa',
   webDir: 'dist',
   ...(dev && {
     server: { cleartext: true },

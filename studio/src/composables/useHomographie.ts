@@ -44,7 +44,7 @@ export type Homographie = number[]
  */
 export function homographie(depuis: Point[], vers: Point[]): Homographie {
   if (depuis.length !== 4 || vers.length !== 4) {
-    throw new Error('Une homographie demande exactement 4 points de chaque cote')
+    throw new Error('Une homographie demande exactement 4 points de chaque côté')
   }
 
   const a: number[][] = []
@@ -67,7 +67,7 @@ export function homographie(depuis: Point[], vers: Point[]): Homographie {
     }
 
     if (Math.abs(a[pivot][colonne]) < 1e-10) {
-      throw new Error('Ces quatre points ne definissent pas un quadrilatere')
+      throw new Error('Ces quatre points ne définissent pas un quadrilatère')
     }
 
     ;[a[colonne], a[pivot]] = [a[pivot], a[colonne]]

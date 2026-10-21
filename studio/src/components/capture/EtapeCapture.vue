@@ -88,8 +88,8 @@ async function charger(blob: Blob): Promise<void> {
 <template>
   <div class="etape">
     <p class="consigne">
-      Pose l'aquarelle a plat, lumiere du jour de preference, et cadre large : les quatre
-      coins de la feuille doivent etre dans l'image.
+      Pose l'aquarelle à plat, lumière du jour de préférence, et cadre large : les quatre
+      coins de la feuille doivent être dans l'image.
     </p>
 
     <ion-button expand="block" :disabled="travail" @click="prendre(CameraSource.Camera)">
@@ -130,7 +130,7 @@ async function charger(blob: Blob): Promise<void> {
     <!-- Revenir ici par Retour ne doit pas obliger a rephotographier : coins et reglages
          du brouillon restent en place tant qu'une nouvelle photo ne les remplace pas. -->
     <template v-if="brute">
-      <ion-note class="note">Photo chargee.</ion-note>
+      <ion-note class="note">Photo chargée.</ion-note>
       <ion-button expand="block" fill="clear" :disabled="travail" @click="emit('suivant')">
         Continuer avec cette photo
       </ion-button>

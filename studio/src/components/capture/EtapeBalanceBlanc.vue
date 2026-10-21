@@ -82,7 +82,7 @@ function annuler(): void {
 <template>
   <div class="etape">
     <p class="consigne">
-      Touche une zone de reserve — du papier laisse nu. C'est ce point qui sera ramene au
+      Touche une zone de réserve — du papier laissé nu. C'est ce point qui sera ramené au
       blanc du papier, et toute la photo avec lui.
     </p>
 
@@ -93,7 +93,7 @@ function annuler(): void {
       <span class="fleche">-&gt;</span>
       <span class="pastille" :style="{ background: teinte(corrigee) }" />
       <span class="pastille reference" :style="{ background: teinte(blancPapier) }" />
-      <ion-note>mesure, corrige, blanc papier</ion-note>
+      <ion-note>mesuré, corrigé, blanc papier</ion-note>
     </div>
 
     <ion-note v-else class="note">Aucune mesure : l'image partira telle quelle.</ion-note>

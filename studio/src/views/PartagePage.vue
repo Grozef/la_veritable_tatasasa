@@ -21,6 +21,7 @@ import {
   IonToolbar,
 } from '@ionic/vue'
 import type { SocialNetwork, Work } from '@/api/types'
+import { libelle, libellesReseau } from '@/composables/libelles'
 import { peindreVisuel, type FormatPartage } from '@/composables/useVisuelPartage'
 import { api } from '@/services/api'
 import { enfilerTrace } from '@/services/filePartages'
@@ -55,7 +56,7 @@ onMounted(async () => {
   }
 
   if (!oeuvre.value) {
-    erreur.value = 'Oeuvre introuvable'
+    erreur.value = 'Œuvre introuvable'
 
     return
   }
@@ -120,9 +121,14 @@ async function partager(): Promise<void> {
     const visuel = await versBlob()
     const resultat = await partagerVisuel(visuel, oeuvre.value.title, legende.value)
 
+    // Feuille refermée sans rien choisir : rien n'a été partagé, rien à dire ni à tracer.
+    if (resultat === 'annule') {
+      return
+    }
+
     if (resultat === 'indisponible') {
       message.value =
-        "La feuille de partage n'est pas disponible ici. Le visuel reste affiche : enregistre-le, puis note le partage."
+        "La feuille de partage n'est pas disponible ici. Le visuel reste affiché : enregistre-le, puis note le partage."
 
       return
     }
@@ -131,7 +137,7 @@ async function partager(): Promise<void> {
     await ecoulerFile()
     await rafraichir().catch(() => undefined)
 
-    message.value = 'Partage trace.'
+    message.value = 'Partage tracé.'
   } catch (cause) {
     erreur.value = (cause as Error).message
   } finally {
@@ -147,7 +153,7 @@ async function tracerSeulement(): Promise<void> {
     await enfilerTrace(props.ulid, reseau.value, legende.value.trim() || null)
     await ecoulerFile()
     await rafraichir().catch(() => undefined)
-    message.value = 'Partage trace.'
+    message.value = 'Partage tracé.'
   } finally {
     travail.value = false
   }
@@ -173,7 +179,7 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
       <template v-if="oeuvre">
         <ion-segment :value="format" @ion-change="format = ($event as CustomEvent).detail.value">
           <ion-segment-button value="portrait">4:5</ion-segment-button>
-          <ion-segment-button value="carre">Carre</ion-segment-button>
+          <ion-segment-button value="carre">Carré</ion-segment-button>
         </ion-segment>
 
         <canvas ref="toile" class="visuel" />
@@ -182,7 +188,7 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
           <ion-item>
             <ion-textarea
               v-model="legende"
-              label="Legende"
+              label="Légende"
               label-placement="stacked"
               :rows="3"
               :counter="true"
@@ -191,16 +197,16 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
           </ion-item>
 
           <ion-item>
-            <ion-select v-model="reseau" label="Depose sur" label-placement="stacked">
+            <ion-select v-model="reseau" label="Déposé sur" label-placement="stacked">
               <ion-select-option v-for="candidat in reseaux" :key="candidat" :value="candidat">
-                {{ candidat }}
+                {{ libelle(libellesReseau, candidat) }}
               </ion-select-option>
             </ion-select>
           </ion-item>
         </ion-list>
 
         <ion-note class="note">
-          La feuille de partage ne dit pas ou tu as depose l'image : c'est cette liste qui
+          La feuille de partage ne dit pas où tu as déposé l'image : c'est cette liste qui
           fait foi dans l'historique.
         </ion-note>
 
@@ -210,7 +216,7 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
         </ion-button>
 
         <ion-button expand="block" fill="outline" :disabled="travail" @click="tracerSeulement">
-          Noter un partage deja fait
+          Noter un partage déjà fait
         </ion-button>
 
         <ion-note v-if="message" class="note">{{ message }}</ion-note>
@@ -218,13 +224,13 @@ const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR')
         <ion-list v-if="partages.length">
           <ion-item v-for="(partage, index) in partages" :key="index">
             <ion-label>
-              <h3>{{ partage.network }}</h3>
+              <h3>{{ libelle(libellesReseau, partage.network) }}</h3>
               <p>{{ dateCourte(partage.postedAt) }}</p>
             </ion-label>
           </ion-item>
         </ion-list>
 
-        <ion-note v-else class="note">Jamais partagee.</ion-note>
+        <ion-note v-else class="note">Jamais partagée.</ion-note>
       </template>
     </ion-content>
   </ion-page>

@@ -75,7 +75,7 @@ describe('homographie', () => {
       { x: 30, y: 0 },
     ]
 
-    expect(() => homographie(alignes, carre(10))).toThrow(/quadrilatere/)
+    expect(() => homographie(alignes, carre(10))).toThrow(/quadrilatère/)
   })
 
   it('refuse un nombre de points different de quatre', () => {

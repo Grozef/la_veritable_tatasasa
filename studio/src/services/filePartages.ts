@@ -88,7 +88,7 @@ export async function viderPartages(): Promise<{ envoyes: number; restants: numb
 
         await ecrire((await filePartages()).map((candidate) => (
           candidate.id === trace.id
-            ? { ...candidate, erreur: cause instanceof Error ? cause.message : 'Trace refusee' }
+            ? { ...candidate, erreur: cause instanceof Error ? cause.message : 'Trace refusée' }
             : candidate
         )))
       }

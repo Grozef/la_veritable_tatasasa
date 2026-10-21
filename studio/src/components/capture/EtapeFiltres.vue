@@ -20,7 +20,7 @@ const curseurs = [
   { cle: 'exposition' as const, nom: 'Exposition', min: -2, max: 2, pas: 0.05 },
   { cle: 'contraste' as const, nom: 'Contraste', min: -0.5, max: 0.5, pas: 0.01 },
   { cle: 'saturation' as const, nom: 'Saturation', min: -1, max: 1, pas: 0.01 },
-  { cle: 'temperature' as const, nom: 'Temperature', min: -1, max: 1, pas: 0.01 },
+  { cle: 'temperature' as const, nom: 'Température', min: -1, max: 1, pas: 0.01 },
 ]
 
 onMounted(() => {
@@ -63,7 +63,7 @@ function neutraliser(): void {
     <canvas v-show="!erreur" ref="toile" class="apercu" />
 
     <ion-note v-if="erreur" color="warning" class="note">
-      Apercu impossible ({{ erreur }}) — l'image partira sans filtre.
+      Aperçu impossible ({{ erreur }}) — l'image partira sans filtre.
     </ion-note>
 
     <ion-list>
@@ -86,11 +86,11 @@ function neutraliser(): void {
     </ion-list>
 
     <ion-note class="note">
-      Les reglages sont ranges a cote de l'image : la photo brute part intacte et reste
+      Les réglages sont rangés à côté de l'image : la photo brute part intacte et reste
       corrigeable.
     </ion-note>
 
-    <ion-button expand="block" fill="outline" @click="neutraliser">Tout remettre a plat</ion-button>
+    <ion-button expand="block" fill="outline" @click="neutraliser">Tout remettre à plat</ion-button>
     <ion-button expand="block" @click="emit('suivant')">Continuer</ion-button>
   </div>
 </template>
