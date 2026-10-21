@@ -25,8 +25,11 @@ const grains: Record<string, string> = {
 /*
  * Zoom et deplacement a la main. Le grain du papier EST le sujet d'une aquarelle :
  * une vue qui ne permet pas d'y entrer ne montre pas l'oeuvre. Deux doigts pour
- * l'echelle, un doigt ou la souris pour se deplacer, molette au pointeur, double clic
- * pour revenir au cadre.
+ * l'echelle, un doigt ou la souris pour se deplacer, Ctrl + molette au pointeur, double
+ * clic pour revenir au cadre.
+ *
+ * A l'echelle 1 l'image est un passage de la page : un doigt ou la molette la font
+ * defiler. Le cadre ne garde ces gestes pour lui qu'une fois l'image agrandie.
  */
 const echelle = ref(1)
 const dx = ref(0)
@@ -111,7 +114,24 @@ function lacher(event: PointerEvent): void {
   ecartInitial = 0
 }
 
+/*
+ * `touch-action: pan-y` laisse le defilement vertical au navigateur : un pincement qui derive
+ * a la verticale serait pris pour un defilement (pointercancel, zoom perdu). Des que deux
+ * doigts sont poses, le geste est garde pour l'image.
+ */
+function deuxDoigts(event: TouchEvent): void {
+  if (event.touches.length > 1) {
+    event.preventDefault()
+  }
+}
+
 function molette(event: WheelEvent): void {
+  // Ctrl + molette (et le pincement d'un pave tactile, qui arrive ainsi) zoome toujours.
+  if (echelle.value === 1 && !event.ctrlKey) {
+    return
+  }
+
+  event.preventDefault()
   const point = local(event)
   zoomer(event.deltaY < 0 ? 1.15 : 1 / 1.15, point.x, point.y)
 }
@@ -166,6 +186,7 @@ function clavier(event: KeyboardEvent): void {
   <article v-if="work" class="oeuvre">
     <div
       class="cadre"
+      :class="{ agrandi: echelle > 1 }"
       :tabindex="media?.sources ? 0 : undefined"
       :role="media?.sources ? 'group' : undefined"
       :aria-label="media?.sources ? `Zoom sur ${work.title}` : undefined"
@@ -175,7 +196,10 @@ function clavier(event: KeyboardEvent): void {
       @pointermove="deplacer"
       @pointerup="lacher"
       @pointercancel="lacher"
-      @wheel.prevent="molette"
+      @lostpointercapture="lacher"
+      @touchstart="deuxDoigts"
+      @touchmove="deuxDoigts"
+      @wheel="molette"
       @dblclick="recadrer"
     >
       <picture v-if="media?.sources">
@@ -282,8 +306,13 @@ function clavier(event: KeyboardEvent): void {
 .cadre {
   overflow: hidden;
   background: var(--papier-ombre);
-  touch-action: none;
+  /* Un doigt fait defiler la page ; deux doigts restent au zoom de l'image. */
+  touch-action: pan-y;
   box-shadow: 0 1px 0 var(--filet);
+}
+
+.cadre.agrandi {
+  touch-action: none;
 }
 
 /* `picture` est en ligne par defaut : sans cela le `width: 100%` de l'image se

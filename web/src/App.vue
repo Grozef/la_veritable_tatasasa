@@ -46,6 +46,17 @@ import Nuancier from '@/components/Nuancier.vue'
   padding: clamp(1rem, 3vw, 2rem) var(--marge) 0.75rem;
 }
 
+/*
+ * Cible tactile de 44 px au moins : le rembourrage vertical agrandit la zone de toucher,
+ * la marge negative egale le retire de la mise en page. Le texte ne bouge pas.
+ */
+.enseigne,
+nav a {
+  --toucher: max(0px, (44px - 1lh) / 2);
+  padding-block: var(--toucher);
+  margin-block: calc(-1 * var(--toucher));
+}
+
 .enseigne {
   font-size: clamp(1.2rem, 1rem + 1vw, 1.8rem);
   letter-spacing: 0.02em;
@@ -59,6 +70,8 @@ nav {
 }
 
 nav a {
+  min-width: 44px;
+  text-align: center;
   text-decoration: none;
   color: var(--encre-pale);
 }
