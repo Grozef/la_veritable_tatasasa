@@ -40,9 +40,9 @@ const nomsSelectionnes = () =>
          n'est pas annoncee. Seul son contenu change au fil des filtres. -->
     <p class="etat annonce" aria-live="polite"><template v-if="regionPrete && !chargement && !erreur && selection.length > 0">{{ filtrees.length }} œuvre{{ filtrees.length > 1 ? 's' : '' }} en {{ nomsSelectionnes() }}</template></p>
 
-    <p v-if="chargement" class="etat">Ouverture du carnet…</p>
+    <p v-if="chargement" class="etat reserve">Ouverture du carnet…</p>
 
-    <p v-else-if="erreur" class="etat" role="alert">
+    <p v-else-if="erreur" class="etat reserve" role="alert">
       Le carnet n'a pas pu s'ouvrir.
       <button type="button" @click="store.charger()">Réessayer</button>
     </p>
@@ -70,13 +70,27 @@ const nomsSelectionnes = () =>
   font-size: 0.95rem;
 }
 
+/*
+ * Ouverture et panne : la place de la grille est tenue jusqu'au bas de l'ecran, et la
+ * marge du message ne traverse pas `main`. Sinon l'arrivee de la grille chasse le pied de
+ * page affiche sous le message et remonte `main` de la hauteur de cette marge.
+ */
+.etat.reserve {
+  min-height: 100svh;
+  margin-top: 0;
+}
+
 /* Vide, la region reste dans le DOM sans occuper de place. */
 .annonce:empty {
   padding: 0;
   margin: 0;
 }
 
+/* 44 px de cible tactile ; la marge negative egale laisse la ligne a sa hauteur. */
 button {
+  --toucher: max(0px, (44px - 1lh) / 2);
+  padding-block: var(--toucher);
+  margin-block: calc(-1 * var(--toucher));
   margin-left: 0.5rem;
   border: 0;
   background: none;

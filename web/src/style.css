@@ -4,12 +4,17 @@
  */
 
 :root {
+  /* Site clair voulu : champs, barres de defilement et controles natifs restent clairs. */
+  color-scheme: light;
+
   /* Blanc papier, JAMAIS #fff pur : la reserve d'une aquarelle n'est pas un ecran. */
   --papier: #faf7f0;
   --papier-ombre: #f0ebe0;
   --encre: #2b2724;
   --encre-pale: #6f665c;
   --filet: #d8cfbe;
+  /* Contour d'une pastille de pigment : un pigment tres pale ne disparait pas dans le papier. */
+  --contour-pastille: rgb(0 0 0 / 0.18);
 
   --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
 

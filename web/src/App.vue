@@ -6,7 +6,7 @@ import Nuancier from '@/components/Nuancier.vue'
 <template>
   <GrainPapier />
 
-  <a class="saut-contenu" href="#contenu">Aller au carnet</a>
+  <a class="saut-contenu" href="#contenu">Aller au contenu</a>
 
   <div class="feuille">
     <header class="entete">

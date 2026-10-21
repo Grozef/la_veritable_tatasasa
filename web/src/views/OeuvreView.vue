@@ -281,8 +281,11 @@ function clavier(event: KeyboardEvent): void {
       Touches + et − pour agrandir, flèches pour se déplacer, 0 pour revenir au cadre.
     </p>
 
+    <!-- Le geste de retour depend du pointeur : au doigt, le double-clic n'existe pas. -->
     <p v-if="echelle > 1" class="aide">
-      Échelle {{ echelleLue }}× — double-clic pour recadrer
+      Échelle {{ echelleLue }}× —
+      <span class="geste-souris">double-clic pour recadrer</span>
+      <span class="geste-doigts">resserrez deux doigts pour recadrer</span>
     </p>
 
     <div class="fiche">
@@ -330,9 +333,9 @@ function clavier(event: KeyboardEvent): void {
     </div>
   </article>
 
-  <p v-else-if="store.chargement" class="etat ouverture">Ouverture de l'œuvre…</p>
+  <p v-else-if="store.chargement" class="etat reserve">Ouverture de l'œuvre…</p>
 
-  <div v-else-if="store.erreur" class="etat">
+  <div v-else-if="store.erreur" class="etat reserve">
     <h1 class="lecteur-seul">Œuvre indisponible</h1>
     <p role="alert">
       Le carnet n'a pas pu s'ouvrir.
@@ -340,7 +343,7 @@ function clavier(event: KeyboardEvent): void {
     </p>
   </div>
 
-  <div v-else class="etat">
+  <div v-else class="etat reserve">
     <h1 class="lecteur-seul">Œuvre introuvable</h1>
     <p>
       Cette œuvre n'est pas au carnet. <RouterLink :to="{ name: 'carnet' }">Y revenir</RouterLink>
@@ -422,6 +425,25 @@ img {
   white-space: normal;
 }
 
+.geste-doigts {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .geste-souris {
+    display: none;
+  }
+
+  .geste-doigts {
+    display: inline;
+  }
+}
+
+/* Conteneur : la liste ci-dessous se regle sur la largeur de la fiche, pas de l'ecran. */
+.fiche {
+  container-type: inline-size;
+}
+
 .fiche h1 {
   font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
 }
@@ -434,6 +456,23 @@ dl {
   padding-top: 0.75rem;
   border-top: var(--filet-trait);
   font-size: 0.95rem;
+}
+
+/*
+ * Fiche trop etroite pour l'intitule et sa valeur cote a cote (« 420 × 300 mm » est
+ * insecable) : une colonne, la valeur sous son intitule. En rem, le seuil suit la taille
+ * du texte : a 200 % la fiche d'un ecran de 390 px passe sur une colonne au lieu de
+ * deborder ; au texte normal, deux colonnes jusqu'a 320 px.
+ */
+@container (max-width: 13rem) {
+  dl {
+    grid-template-columns: 1fr;
+    row-gap: 0;
+  }
+
+  dd + dt {
+    margin-top: 0.35rem;
+  }
 }
 
 dt {
@@ -473,7 +512,7 @@ dd {
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  box-shadow: inset 0 0 0 1px var(--contour-pastille);
 }
 
 .part {
@@ -495,13 +534,21 @@ dd {
 /*
  * Pendant l'ouverture, la place de la fiche est tenue jusqu'au bas de l'ecran : sinon le
  * pied de page s'affiche juste sous ce message, puis l'arrivee de la fiche le chasse
- * (decalage de mise en page mesure a 0,48 sur la fiche).
+ * (decalage de mise en page mesure a 0,48 sur la fiche). Les issues sans fiche (absente,
+ * indisponible) gardent la meme place : la relacher ferait remonter le pied de page
+ * (0,76 mesure sur une oeuvre absente).
  */
-.etat.ouverture {
+.etat.reserve {
   min-height: 100svh;
+  /* Sans elle, la marge du message traverse `main` et le decale a l'arrivee du contenu. */
+  margin-top: 0;
 }
 
+/* 44 px de cible tactile ; la marge negative egale laisse la ligne a sa hauteur. */
 .etat button {
+  --toucher: max(0px, (44px - 1lh) / 2);
+  padding-block: var(--toucher);
+  margin-block: calc(-1 * var(--toucher));
   margin-left: 0.5rem;
   border: 0;
   background: none;

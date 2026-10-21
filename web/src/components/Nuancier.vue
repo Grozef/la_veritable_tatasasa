@@ -12,7 +12,7 @@ import { useWorksStore } from '@/stores/works'
  * or c'est ici que se fait toute la navigation.
  */
 const store = useWorksStore()
-const { pigments, selection } = storeToRefs(store)
+const { pigments, selection, chargement } = storeToRefs(store)
 
 const router = useRouter()
 const route = useRoute()
@@ -21,8 +21,13 @@ const route = useRoute()
  * La bande est dans la coquille : elle se charge elle-meme, sinon une arrivee directe
  * sur une page sans oeuvres (atelier, contact, serie) la laisserait vide. `charger` est
  * idempotent : les vues qui l'appellent aussi reprennent la meme requete.
+ *
+ * `charge` : la premiere requete a abouti, en succes OU en echec. Une bande restee vide
+ * (panne, nuancier vide) doit encore laisser effacer une selection posee par /pigment/:slug.
  */
-onMounted(() => store.charger())
+const charge = ref(false)
+
+onMounted(() => store.charger().then(() => (charge.value = true)))
 
 /*
  * Sur ecran etroit la bande tient sur une ligne qui defile a l'horizontale. Les fondus
@@ -148,7 +153,16 @@ function filtrer(slug: string): void {
       </li>
     </ul>
 
-    <button v-if="selection.length > 0" type="button" class="effacer" @click="store.selectionner([])">
+    <!-- Pas pendant le chargement : seul dans une bande vide, il s'aligne sur le bas de la
+         place reservee puis remonte a leur arrivee (selection posee par /pigment/:slug).
+         Une fois le chargement fini, il reste meme si la bande est vide : sinon la
+         selection ne s'efface plus. -->
+    <button
+      v-if="selection.length > 0 && (pigments.length > 0 || (charge && !chargement))"
+      type="button"
+      class="effacer"
+      @click="store.selectionner([])"
+    >
       Tout le carnet
     </button>
   </nav>
@@ -208,10 +222,11 @@ ul.suite-droite {
 
 /*
  * Les pigments arrivent avec les oeuvres : sans place reservee, la bande grandit a leur
- * arrivee et pousse toute la page (decalage de mise en page). Une rangee de 44 px ici.
+ * arrivee et pousse toute la page (decalage de mise en page). Une rangee de 44 px ici,
+ * plus le rembourrage de la liste : sa marge negative le retire de la hauteur occupee.
  */
 ul.attente {
-  min-height: 44px;
+  min-height: calc(44px + 0.8rem);
 }
 
 li {
@@ -235,7 +250,7 @@ li {
 
   /* Deux rangees : la hauteur mesuree de la bande a 1440 px (113 px, marges comprises). */
   ul.attente {
-    min-height: 88px;
+    min-height: calc(88px + 0.8rem);
   }
 }
 
@@ -260,7 +275,7 @@ button {
   height: 0.85rem;
   border-radius: 50%;
   /* Le filet evite qu'un pigment tres pale disparaisse dans le papier. */
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  box-shadow: inset 0 0 0 1px var(--contour-pastille);
 }
 
 /* L'etat selectionne ne repose PAS sur la seule couleur. */
